@@ -18,15 +18,18 @@ jobs:
           python-version: "3.11"
       - name: Install package
         run: python -m pip install -e .[ai]
-      - name: Generate assets
+      - name: Require OpenAI API key
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          if [ -n "$OPENAI_API_KEY" ]; then
-            python -m bookbase_automation.cli --root . --use-ai
-          else
-            python -m bookbase_automation.cli --root .
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "OPENAI_API_KEY secret is required for production runs." >&2
+            exit 1
           fi
+      - name: Generate assets
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python -m bookbase_automation.cli --root . --use-ai
       - name: Commit generated files
         run: |
           if [ -n "$(git status --porcelain)" ]; then

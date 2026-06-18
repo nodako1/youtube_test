@@ -27,8 +27,10 @@ def process_one(input_path: Path, config: AppConfig) -> Path:
         rules_text = load_rules(config.rules_dir)
         if config.use_ai:
             assets = generate_ai_assets(source_text, book_name, rules_text, model=config.model)
-        else:
+        elif config.allow_fallback:
             assets = generate_fallback_assets(source_text, book_name)
+        else:
+            raise RuntimeError("AI生成が無効です。本番実行では--use-aiを指定してください。動作確認のみ--allow-fallbackを使用できます。")
 
         (out_dir / "00_input.txt").write_text(source_text, encoding="utf-8")
         (out_dir / "01_script.md").write_text(assets.script, encoding="utf-8")
@@ -36,7 +38,7 @@ def process_one(input_path: Path, config: AppConfig) -> Path:
         (out_dir / "03_description.md").write_text(assets.description, encoding="utf-8")
         (out_dir / "04_thumbnail_ideas.md").write_text(assets.thumbnail_ideas, encoding="utf-8")
         (out_dir / "05_image_prompts.json").write_text(assets.image_prompts, encoding="utf-8")
-        report = build_quality_report(assets.script, assets.titles, assets.image_prompts)
+        report = build_quality_report(assets.script, assets.titles, assets.image_prompts, assets.description)
         (out_dir / "quality_report.md").write_text(report, encoding="utf-8")
         move_file(processing_path, config.archive_dir)
         return out_dir

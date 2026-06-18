@@ -32,13 +32,13 @@ YYYYMMDD_書籍名.txt
 
 ## 実行方法
 
-AI APIを使わず、動作確認用の下書きを生成する場合：
+AI APIを使わず、ローカルの動作確認用下書きを生成する場合：
 
 ```bash
-python -m bookbase_automation.cli --root .
+python -m bookbase_automation.cli --root . --allow-fallback
 ```
 
-OpenAI APIで生成する場合：
+本番実行ではフォールバック生成を誤って使わないよう、必ずOpenAI APIを有効にします：
 
 ```bash
 OPENAI_API_KEY=... python -m bookbase_automation.cli --root . --use-ai
@@ -62,7 +62,7 @@ output/
 
 ## 定時実行
 
-`.github/workflows/daily.yml`により、GitHub Actions上で毎日7:00 JSTに実行できます。GitHub ActionsでAI生成を使う場合は、Repository Secretsに`OPENAI_API_KEY`を設定してください。
+`.github/workflows/daily.yml`により、GitHub Actions上で毎日7:00 JSTに実行できます。GitHub Actionsの本番実行ではフォールバック生成を使わず、Repository Secretsの`OPENAI_API_KEY`が未設定の場合は失敗させます。
 
 ## v1の範囲
 
@@ -74,6 +74,10 @@ output/
 - 50〜60文字の説明文生成
 - サムネイル案A/B/C生成
 - 20シーン分の画像プロンプト生成
+- 各シーン180〜220字、全体3600〜4400字の品質チェック
+- 50〜60文字説明文の品質チェック
+- シーン19固定開始文の品質チェック
+- タイトルの【】フック重複チェック
 - `quality_report.md`生成
 - 成功時は`archive/`へ移動
 - 失敗時は`error/`へ移動

@@ -15,10 +15,19 @@ class AppConfig:
     rules_dir: Path
     max_files_per_run: int = 1
     use_ai: bool = False
+    allow_fallback: bool = False
     model: str = "gpt-4.1-mini"
 
     @classmethod
-    def from_root(cls, root: Path, *, max_files_per_run: int = 1, use_ai: bool = False, model: str = "gpt-4.1-mini") -> "AppConfig":
+    def from_root(
+        cls,
+        root: Path,
+        *,
+        max_files_per_run: int = 1,
+        use_ai: bool = False,
+        allow_fallback: bool = False,
+        model: str = "gpt-4.1-mini",
+    ) -> "AppConfig":
         root = root.resolve()
         return cls(
             root=root,
@@ -30,6 +39,7 @@ class AppConfig:
             rules_dir=root / "rules",
             max_files_per_run=max_files_per_run,
             use_ai=use_ai,
+            allow_fallback=allow_fallback,
             model=model,
         )
 

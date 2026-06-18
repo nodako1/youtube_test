@@ -5,7 +5,7 @@ from bookbase_automation.processor import run
 
 
 def test_run_processes_one_input_file(tmp_path: Path):
-    config = AppConfig.from_root(tmp_path)
+    config = AppConfig.from_root(tmp_path, allow_fallback=True)
     config.ensure_directories()
     (config.input_dir / "20260618_テスト本.txt").write_text("仕事で使える本の要点です。判断、習慣、行動について説明します。", encoding="utf-8")
 
@@ -24,7 +24,21 @@ def test_run_processes_one_input_file(tmp_path: Path):
 
 
 def test_run_does_nothing_without_input(tmp_path: Path):
-    config = AppConfig.from_root(tmp_path)
+    config = AppConfig.from_root(tmp_path, allow_fallback=True)
     config.ensure_directories()
 
     assert run(config) == []
+
+
+def test_run_requires_ai_or_explicit_fallback(tmp_path: Path):
+    config = AppConfig.from_root(tmp_path)
+    config.ensure_directories()
+    (config.input_dir / "20260618_テスト本.txt").write_text("本文", encoding="utf-8")
+
+    try:
+        run(config)
+    except RuntimeError as exc:
+        assert "--use-ai" in str(exc)
+    else:
+        raise AssertionError("AIなし本番実行が許可されています")
+    assert list(config.error_dir.glob("2026-06-18_テスト本/*.txt"))

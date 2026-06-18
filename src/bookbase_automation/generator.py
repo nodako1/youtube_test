@@ -54,7 +54,7 @@ def generate_fallback_assets(source_text: str, book_name: str) -> GeneratedAsset
             f"C. 【明日から使える】{book_name}の本質を20シーンで解説",
         ]
     ) + "\n"
-    description = f"{book_name}の要点を、仕事と日常で使える視点に絞って解説します。"
+    description = f"{book_name}の要点を仕事と日常で使える視点に絞り、明日から実践できる形で解説します。"
     thumbnail_ideas = "\n".join(
         [
             "# サムネイル案",
