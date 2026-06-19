@@ -1260,7 +1260,12 @@ def _build_thumbnail_comments(book_name: str, cover_check: AssetCheck | None = N
         "",
         "Pattern B：",
         "方向性：誘惑・ベネフィット型",
+        "固定役割：メリットや前向きな変化を直感的に伝えるBook BaseのYouTubeサムネイル",
         "コメント：仕事が軽くなる思考法",
+        "benefit_trigger_label：この本の学びで仕事や考え方が軽くなり、実務に前向きな改善が起こりそうという期待",
+        "benefit_style：intelligent_simplicity",
+        "visual_structure：desk_layout_cover_focus",
+        "exact_text_elements：仕事が軽くなる思考法（1要素のみ）",
         f"狙い：{book_name}から得られる前向きな変化を、仕事改善のベネフィットとして伝える。",
         "出力ファイル名：thumbnail_B_benefit.png",
         f"使用画像：{cover_path}",
@@ -1292,7 +1297,7 @@ def _build_thumbnail_ideas(book_name: str, cover_check: AssetCheck | None = None
     )
     patterns = [
         ("Pattern A", "thumbnail_A_loss_aversion.png", "脅し・損失回避型", "その努力、遠回りです", "left large comment, right visible book cover, tense but elegant office desk background"),
-        ("Pattern B", "thumbnail_B_benefit.png", "誘惑・ベネフィット型", "仕事が軽くなる思考法", "center large comment, side book cover, bright morning desk and notebook background"),
+        ("Pattern B", "thumbnail_B_benefit.png", "誘惑・ベネフィット型", "仕事が軽くなる思考法", "thumbnail pattern B benefit, fixed role: communicate the positive benefit viewers may gain from the book, benefit_trigger_label: work and thinking may become lighter and clearer, benefit_style: intelligent_simplicity, visual_structure: desk_layout_cover_focus, large current book cover as key visual, one exact Japanese text element only, bright aspirational desk layout, calm structured whitespace, avoid cheap self-help design and overhyped success imagery"),
         ("Pattern C", "thumbnail_C_curiosity.png", "逆張り・好奇心型", "考える前に整える", "upper large comment, lower corner book cover, curiosity-driven tidy notes and soft contrast"),
     ]
     lines = ["# サムネイル生成プロンプト", "", f"使用ブックカバー：{cover_path}", f"needs_review：{needs_review}", ""]

@@ -90,6 +90,21 @@ def test_quality_report_detects_weak_and_one_sided_title_hooks():
     assert "タイトル弱いフックなし: NG" in report
 
 
+
+
+def test_image_quality_report_includes_thumbnail_b_benefit_checks():
+    from bookbase_automation.image_generation import build_image_quality_report
+
+    report = build_image_quality_report([])
+
+    assert "## 【thumbnail_B_benefit 画像品質チェック】" in report
+    assert "thumbnail_B_benefit固定役割に合っている：OK" in report
+    assert "ベネフィット訴求型サムネになっている：OK" in report
+    assert "benefit_trigger_label が定義されている：OK" in report
+    assert "benefit_style が設定されている：OK" in report
+    assert "visual_structure が設定されている：OK" in report
+    assert "thumbnail_Aと役割が混ざっていない：OK" in report
+
 def test_image_quality_report_includes_scene_06_checks():
     from bookbase_automation.image_generation import build_image_quality_report
 

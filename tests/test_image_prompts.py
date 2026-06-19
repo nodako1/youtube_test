@@ -474,3 +474,34 @@ def test_thumbnail_a_loss_aversion_prompt_uses_permanent_quality_structure(tmp_p
     assert "1. その努力、遠回りです" in thumbnail_a.prompt
     assert "cheap clickbait" in thumbnail_a.prompt
     assert "flames, explosions, excessive arrows" in thumbnail_a.prompt
+
+
+def test_thumbnail_b_benefit_prompt_uses_permanent_quality_structure(tmp_path: Path):
+    cover = tmp_path / "20260619_book_cover.webp"
+    cover.write_bytes(b"cover")
+    selection = FlatInputSelection(
+        run_date=date(2026, 6, 19),
+        date_key="20260619",
+        current_sources=[],
+        current_book_covers=[cover],
+        current_authors=[],
+        related_sources=[],
+        related_book_covers=[],
+    )
+
+    targets = build_image_targets(tmp_path / "output", "[]", selection, scenes=[], include_thumbnails=True)
+    thumbnail_b = next(target for target in targets if target.key == "thumbnail_B_benefit")
+
+    assert thumbnail_b.references == (cover,)
+    assert "This is thumbnail pattern B: benefit" in thumbnail_b.prompt
+    assert "Use the reference image as the current book cover" in thumbnail_b.prompt
+    assert str(cover) in thumbnail_b.prompt
+    assert "Main comment text:\n仕事が軽くなる思考法" in thumbnail_b.prompt
+    assert "Benefit trigger:" in thumbnail_b.prompt
+    assert "Benefit style:\nintelligent_simplicity" in thumbnail_b.prompt
+    assert "Visual structure:\ndesk_layout_cover_focus" in thumbnail_b.prompt
+    assert "Use only the following Japanese text element exactly as written" in thumbnail_b.prompt
+    assert "1. 仕事が軽くなる思考法" in thumbnail_b.prompt
+    assert "cheap self-help thumbnail" in thumbnail_b.prompt
+    assert "thumbnail_A_loss_aversion" in thumbnail_b.prompt
+    assert "bright aspirational desk layout" in thumbnail_b.prompt

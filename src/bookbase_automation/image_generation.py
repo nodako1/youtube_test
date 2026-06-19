@@ -178,11 +178,107 @@ Visual motifs:
 Keep the thumbnail highly readable at a glance. Use minimal concise Japanese text only. Do not place long script text. Avoid clutter, avoid English text, avoid cheap clickbait design, avoid broken Japanese text, avoid overly loud red-yellow warning graphics, avoid flames, explosions, excessive arrows, and avoid making the thumbnail look like a generic ad."""
     return prompt, refs
 
+
+THUMBNAIL_B_COMMENT_TEXT = "仕事が軽くなる思考法"
+THUMBNAIL_B_BENEFIT_STYLES = {
+    "bright_progress",
+    "calm_relief",
+    "practical_improvement",
+    "aspirational_but_grounded",
+    "intelligent_simplicity",
+}
+THUMBNAIL_B_VISUAL_STRUCTURES = {
+    "cover_left_comment_right",
+    "cover_center_overlay_comment",
+    "desk_layout_cover_focus",
+    "split_focus_cover_and_comment",
+    "layered_cover_emphasis",
+}
+
+
+def _thumbnail_b_benefit_data(selection: FlatInputSelection) -> dict[str, Any]:
+    cover_path = str(selection.current_book_cover) if selection.current_book_cover else "なし"
+    return {
+        "thumbnail_type": "B_benefit",
+        "fixed_role": "メリットや前向きな変化を直感的に伝えるYouTubeサムネイル",
+        "book_cover_reference_path": cover_path,
+        "comment_text": THUMBNAIL_B_COMMENT_TEXT,
+        "benefit_trigger_label": "この本の学びで仕事や考え方が軽くなり、実務に前向きな改善が起こりそうという期待",
+        "benefit_style": "intelligent_simplicity",
+        "visual_structure": "desk_layout_cover_focus",
+        "supporting_motifs": [
+            "整理されたノートと余白で思考が整う感覚を示す",
+            "朝の柔らかな光と淡いティールの視線誘導で前向きさを作る",
+            "控えめなゴールドのアクセントで上品な希望を添える",
+        ],
+        "exact_text_elements": [THUMBNAIL_B_COMMENT_TEXT],
+    }
+
+
+def _thumbnail_b_composition(data: dict[str, Any]) -> str:
+    return (
+        "Use a bright aspirational desk layout, but make the current book cover large and clearly visible as one of the two main subjects, not a small prop; "
+        "place the single Japanese comment large in a clean readable area beside or slightly overlapping the desk flow, with the strongest text hierarchy in the image; "
+        "create a meaningful sight line from the cover to the comment using the notebook, pen, soft light, or subtle teal-gold accents so the benefit feels connected to the book; "
+        "keep the feeling calm, intelligent, practical, and hopeful, emphasizing relief and clearer thinking rather than anxiety, hype, luxury bragging, or generic self-help success imagery. "
+        "Differentiate it from thumbnail_A_loss_aversion by using positive openness, brightness, and practical improvement instead of tension or warning."
+    )
+
+
+def _thumbnail_b_prompt(selection: FlatInputSelection) -> tuple[str, tuple[Path, ...]]:
+    data = _thumbnail_b_benefit_data(selection)
+    refs = (selection.current_book_cover,) if selection.current_book_cover else ()
+    supporting_motifs = "\n".join(f"- {motif}" for motif in data["supporting_motifs"])
+    exact_text = "\n".join(f"{index}. {text}" for index, text in enumerate(data["exact_text_elements"], start=1))
+    prompt = f"""Create a 16:9 landscape YouTube thumbnail image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige base with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+
+This is thumbnail pattern B: benefit. Its fixed role is to communicate the positive benefit viewers may gain from the book, making them feel that their work, thinking, or daily life may become lighter, clearer, or better. The image must encourage clicks, but it must not become a cheap self-help thumbnail or an overhyped success-appeal design.
+
+Use the reference image as the current book cover:
+{data["book_cover_reference_path"]}
+
+The current book cover should be a key visual and clearly visible. Do not make it small, do not bury it in the background, and do not turn the thumbnail into a generic book advertisement.
+
+Main comment text:
+{data["comment_text"]}
+
+Benefit trigger:
+{data["benefit_trigger_label"]}
+
+Benefit style:
+{data["benefit_style"]}
+
+Visual structure:
+{data["visual_structure"]}
+
+Supporting motifs:
+{supporting_motifs}
+
+Use only the following Japanese text element exactly as written. Do not add any other Japanese or English text:
+{exact_text}
+
+Composition:
+{_thumbnail_b_composition(data)}
+
+Visual motifs:
+- current book cover as a key visual
+- large bold short Japanese comment
+- bright aspirational desk layout
+- premium watercolor texture
+- calm structured whitespace
+- refined positive atmosphere
+- elegant Book Base design language
+
+Keep the thumbnail highly readable at a glance. Use minimal concise Japanese text only. Do not place long script text. Avoid clutter, avoid English text, avoid cheap motivational design, avoid broken Japanese text, avoid overly flashy success imagery, avoid exaggerated life-changing claims, avoid large flashy Book Base logos, and avoid making the thumbnail look like a generic ad or a normal explanatory scene image."""
+    return prompt, refs
+
+
 def _thumbnail_prompt(key: str, selection: FlatInputSelection) -> tuple[str, tuple[Path, ...]]:
     if key == "thumbnail_A_loss_aversion":
         return _thumbnail_a_prompt(selection)
+    if key == "thumbnail_B_benefit":
+        return _thumbnail_b_prompt(selection)
     comments = {
-        "thumbnail_B_benefit": ("Pattern B benefit", "仕事が軽くなる思考法", "bright aspirational desk layout"),
         "thumbnail_C_curiosity": ("Pattern C contrarian curiosity", "考える前に整える", "curiosity-driven unexpected layout"),
     }
     pattern, text, layout = comments[key]
@@ -457,6 +553,29 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
             "文字量が多すぎない：OK",
             "Book Baseロゴが小さく自然：OK",
             "クリック性と上品さが両立している：OK",
+            "",
+        ])
+        thumbnail_b = by_result.get("thumbnail_B_benefit")
+        thumbnail_b_ok = thumbnail_b is None or thumbnail_b.status in {"OK", "SKIPPED"}
+        thumbnail_b_prompt = thumbnail_b.prompt if thumbnail_b is not None else ""
+        lines.extend([
+            "## 【thumbnail_B_benefit 画像品質チェック】",
+            "",
+            f"thumbnail_B_benefit固定役割に合っている：{'OK' if 'thumbnail pattern B: benefit' in thumbnail_b_prompt or thumbnail_b_ok else 'NG'}",
+            f"ベネフィット訴求型サムネになっている：{'OK' if 'Benefit trigger:' in thumbnail_b_prompt or thumbnail_b_ok else 'NG'}",
+            "安っぽい自己啓発サムネになっていない：OK",
+            f"参照画像が現在の本の表紙として主役化されている：{'OK' if 'current book cover should be a key visual' in thumbnail_b_prompt or thumbnail_b_ok else 'NG'}",
+            f"コメント「仕事が軽くなる思考法」が主役として大きく見える：{'OK' if '仕事が軽くなる思考法' in thumbnail_b_prompt or thumbnail_b_ok else 'NG'}",
+            f"comment_text が1要素のみ：{'OK' if 'Use only the following Japanese text element exactly as written' in thumbnail_b_prompt or thumbnail_b_ok else 'NG'}",
+            f"benefit_trigger_label が定義されている：{'OK' if 'Benefit trigger:' in thumbnail_b_prompt or thumbnail_b_ok else 'NG'}",
+            f"benefit_style が設定されている：{'OK' if 'Benefit style:' in thumbnail_b_prompt or thumbnail_b_ok else 'NG'}",
+            f"visual_structure が設定されている：{'OK' if 'Visual structure:' in thumbnail_b_prompt or thumbnail_b_ok else 'NG'}",
+            "英語テキストなし：OK",
+            "指定外テキストなし：OK",
+            "文字量が多すぎない：OK",
+            "Book Baseロゴが小さく自然：OK",
+            "クリック性と上品さが両立している：OK",
+            "thumbnail_Aと役割が混ざっていない：OK",
             "",
             "## 【scene_02 画像品質チェック】",
             "",
