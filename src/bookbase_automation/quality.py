@@ -177,6 +177,57 @@ def _image_prompt_flow_ok(items: list[dict[str, object]]) -> bool:
     return point1 and point2 and point3 and all(token in flow_text for token in ["土台", "構造", "実践"])
 
 
+
+HARDCODED_BOOK_SPECIFIC_TERMS = [
+    "正解はB",
+    "相手が話しやすくなる",
+    "否定しない言い換え",
+    "否定しない心理効果",
+    "心が開きやすい",
+    "否定される",
+    "防御的になる",
+    "対話が止まる",
+    "言い方で関係は変わる",
+    "①否定しない",
+    "②伝わり方",
+    "③実践フレーズ",
+    "否定しない言い換え事典",
+    "長尾彰",
+    "20260619_book_cover.webp",
+    "20260619_author.jpg",
+]
+
+
+def _scene_rule_separation_lines(items: list[dict[str, object]]) -> list[str]:
+    by_scene = {int(item.get("シーン番号", item.get("scene", 0))): item for item in items if str(item.get("シーン番号", item.get("scene", ""))).isdigit()}
+    lines = ["", "【画像プロンプト恒久ルールチェック】", ""]
+    for scene in range(1, 6):
+        item = by_scene.get(scene, {})
+        has_role = bool(item.get("scene_role") or item.get("画像の目的"))
+        has_exact = bool(item.get("exact_text_elements"))
+        instruction = "Use only the following Japanese text elements exactly as written. Do not add any other Japanese or English text." in str(item.get("final_prompt") or item.get("最終プロンプト") or "")
+        lines.append(f"scene_{scene:02d}：固定役割と可変内容を分離：{'OK' if has_role and has_exact and instruction else 'NG'}")
+    prompt_templates = []
+    for item in items[:5]:
+        prompt = str(item.get("final_prompt") or item.get("最終プロンプト") or "")
+        prompt = re.sub(
+            r"Use only the following Japanese text elements exactly as written\. Do not add any other Japanese or English text:?\n.*?(?=\nComposition:| Composition:|$)",
+            "Use only the following Japanese text elements exactly as written. Do not add any other Japanese or English text.",
+            prompt,
+            flags=re.S,
+        )
+        prompt_templates.append(prompt)
+    prompts = "\n".join(prompt_templates)
+    leaked = [term for term in HARDCODED_BOOK_SPECIFIC_TERMS if term in prompts]
+    all_exact = all(by_scene.get(scene, {}).get("exact_text_elements") for scene in range(1, 6))
+    variations = [str(by_scene.get(scene, {}).get("variation_key") or by_scene.get(scene, {}).get("前後画像との差別化") or "") for scene in range(1, 6)]
+    lines.append(f"今回テーマ固有語句のハードコードなし：{'OK' if not leaked else 'NG'}")
+    lines.append(f"exact_text_elementsを原稿から生成：{'OK' if all_exact else 'NG'}")
+    lines.append(f"隣接シーンとの差別化：{'OK' if len(set(variations)) == len(variations) and all(variations) else 'NG'}")
+    if leaked:
+        lines.append(f"検出語句：{', '.join(leaked)}")
+    return lines
+
 def _sentence_lengths(text: str) -> list[int]:
     parts = [part.strip() for part in re.split(r"[。！？]", text) if part.strip()]
     return [len(part) for part in parts]
@@ -358,6 +409,7 @@ def build_quality_report(script: str, titles: str, image_prompts: str, descripti
         status = "OK" if SCENE_MIN_CHARS <= length <= SCENE_MAX_CHARS else "NG"
         lines.append(f"シーン{index}：{length}字 {status}")
     lines.extend(_style_quality_report_lines(script, source_text))
+    lines.extend(_scene_rule_separation_lines(image_items))
     lines.extend(["", "## 詳細チェック", ""])
     for result in results:
         lines.append(f"- {result.name}: {result.status}（{result.detail}）")

@@ -10,3 +10,32 @@
 - 構図は前後画像と被らないように、人物位置、視点、背景、モチーフ、文字配置を変える。
 - Book Baseロゴを右下または右上に小さく自然に配置する。
 - 見た目の綺麗さだけでなく、必ずシーンの役割、所属ブロック、重要ポイント1・2・3の流れに合った画像にする。
+
+## scene_01〜scene_05 固定役割・可変内容分離ルール
+
+画像生成前に、毎回 `image_context.json` を作成し、現在の原稿・本・テーマ・入力画像から抽出した可変内容を管理する。scene_01〜scene_05のプロンプトは、シーンごとの固定役割、`image_context.json` の可変内容、Book Base共通スタイルを組み合わせて生成する。
+
+- 固定役割は、どの本でも共通するシーンの役割だけに限定する。
+- 本ごとの具体的な正解、テーマ語句、ポイント語句、タイトル、著者名は毎回原稿から抽出する。
+- `exact_text_elements` は毎回動的に生成し、画像内テキストはこの配列だけに限定する。
+- `book_cover` と `author_reference` は固定パスにせず、input内の現在日付ファイルから動的に取得する。
+- scene_01〜scene_05の最終プロンプトには必ず次を入れる。
+
+```text
+Use only the following Japanese text elements exactly as written. Do not add any other Japanese or English text.
+```
+
+## quality_report.md への記録
+
+```text
+【画像プロンプト恒久ルールチェック】
+
+scene_01：固定役割と可変内容を分離：OK / NG
+scene_02：固定役割と可変内容を分離：OK / NG
+scene_03：固定役割と可変内容を分離：OK / NG
+scene_04：固定役割と可変内容を分離：OK / NG
+scene_05：固定役割と可変内容を分離：OK / NG
+今回テーマ固有語句のハードコードなし：OK / NG
+exact_text_elementsを原稿から生成：OK / NG
+隣接シーンとの差別化：OK / NG
+```
