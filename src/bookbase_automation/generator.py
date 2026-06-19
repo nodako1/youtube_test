@@ -2,9 +2,14 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 from dataclasses import dataclass
 
 from .assets import AssetCheck, asset_checks_by_scene
+
+
+class AIResponseJSONParseError(ValueError):
+    """Raised when the OpenAI response cannot be parsed as one JSON object."""
 
 
 @dataclass(frozen=True)
@@ -355,13 +360,105 @@ def _asset_context_for_prompt(asset_checks: list[AssetCheck] | None) -> str:
     return "\n".join(f"{check.key}: {check.status} / 使用画像: {check.path or 'なし'} / 注意: {check.note}" for check in asset_checks)
 
 
-def generate_ai_assets(source_text: str, book_name: str, rules_text: str, *, model: str, asset_checks: list[AssetCheck] | None = None) -> GeneratedAssets:
+def _bookbase_assets_json_schema() -> dict[str, object]:
+    image_prompt_properties = {
+        "シーン番号": {"type": "integer"},
+        "所属ブロック": {"type": "string"},
+        "ブロックの役割": {"type": "string"},
+        "重要ポイント番号": {"type": "string"},
+        "ブロック内での役割": {"type": "string"},
+        "前ブロックからの理解の流れ": {"type": "string"},
+        "このシーンで伝える要点": {"type": "string"},
+        "画像の目的": {"type": "string"},
+        "推奨構図": {"type": "string"},
+        "画面内テキスト": {"type": "string"},
+        "前後画像との差別化": {"type": "string"},
+        "使用画像": {"type": "string"},
+        "入力画像チェック": {"type": "string"},
+        "needs_review": {"type": "boolean"},
+        "最終プロンプト": {"type": "string"},
+    }
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "script": {"type": "string"},
+            "titles": {"type": "string"},
+            "description": {"type": "string"},
+            "thumbnail_ideas": {"type": "string"},
+            "thumbnail_comments": {"type": "string"},
+            "metadata": {"type": "string"},
+            "image_prompts": {
+                "type": "array",
+                "minItems": 20,
+                "maxItems": 20,
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": image_prompt_properties,
+                    "required": list(image_prompt_properties),
+                },
+            },
+            "research_scene_11": {"type": "string"},
+            "research_scene_15": {"type": "string"},
+        },
+        "required": [
+            "script",
+            "titles",
+            "description",
+            "thumbnail_ideas",
+            "thumbnail_comments",
+            "metadata",
+            "image_prompts",
+            "research_scene_11",
+            "research_scene_15",
+        ],
+    }
+
+
+def _write_raw_ai_response(path: Path | None, text: str) -> None:
+    if path is None:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def _write_ai_json_parse_error_report(error_dir: Path | None, text: str) -> None:
+    if error_dir is None:
+        return
+    error_dir.mkdir(parents=True, exist_ok=True)
+    (error_dir / "raw_ai_response.txt").write_text(text, encoding="utf-8")
+    (error_dir / "error_report.md").write_text(
+        "\n".join(
+            [
+                "エラー種別：AI応答JSONパース失敗",
+                "原因：OpenAI APIの応答が単一JSONとして解釈できませんでした",
+                "発生箇所：generator.py / generate_ai_assets / json.loads(text)",
+                "対応：raw_ai_response.txt を確認し、JSON schema指定または出力形式を修正してください",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+
+def generate_ai_assets(
+    source_text: str,
+    book_name: str,
+    rules_text: str,
+    *,
+    model: str,
+    asset_checks: list[AssetCheck] | None = None,
+    raw_response_path: Path | None = None,
+    error_dir: Path | None = None,
+) -> GeneratedAssets:
     from openai import OpenAI
 
     client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
     prompt = f"""
 Book BaseのYouTube制作補助として、以下の入力本文から成果物を作成してください。
-必ずルールを守り、JSONのみを返してください。
+必ずルールを守り、APIで指定されたJSON schemaに一致する単一JSONオブジェクトのみを返してください。
+JSONの前後に説明文、Markdown、コードフェンス、複数JSONを付けないでください。
 
 書籍名: {book_name}
 
@@ -388,9 +485,22 @@ scene_15は原稿生成後に重要ポイント③を補強する確認済み名
     response = client.responses.create(
         model=model,
         input=prompt,
+        text={
+            "format": {
+                "type": "json_schema",
+                "name": "bookbase_assets",
+                "strict": True,
+                "schema": _bookbase_assets_json_schema(),
+            }
+        },
     )
     text = response.output_text
-    data = json.loads(text)
+    _write_raw_ai_response(raw_response_path, text)
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        _write_ai_json_parse_error_report(error_dir, text)
+        raise AIResponseJSONParseError("AI応答JSONパース失敗") from exc
     return GeneratedAssets(
         script=data["script"].rstrip() + "\n",
         titles=data["titles"].rstrip() + "\n",

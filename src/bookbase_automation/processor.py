@@ -6,7 +6,7 @@ from pathlib import Path
 from .assets import build_asset_report, check_input_assets
 from .config import AppConfig
 from .fs_utils import move_file, move_path, output_folder_name, slugify
-from .generator import generate_ai_assets, generate_fallback_assets
+from .generator import AIResponseJSONParseError, generate_ai_assets, generate_fallback_assets
 from .image_generation import build_image_quality_report, build_image_targets, generate_images, render_failed_images, render_prompts_markdown
 from .input_assets import build_flat_input_report, derive_book_slug, read_rtfd_zip_text, select_flat_inputs, status_for
 from .metadata import build_metadata_quality_report
@@ -77,7 +77,15 @@ def process_one(input_path: Path, config: AppConfig) -> Path:
         generation_input = _append_related_video_context(source_text, input_root)
         rules_text = load_rules(config.rules_dir)
         if config.use_ai:
-            assets = generate_ai_assets(generation_input, book_name, rules_text, model=config.model, asset_checks=asset_checks)
+            assets = generate_ai_assets(
+                generation_input,
+                book_name,
+                rules_text,
+                model=config.model,
+                asset_checks=asset_checks,
+                raw_response_path=out_dir / "debug" / "raw_ai_response.txt",
+                error_dir=config.error_dir / output_folder_name(processing_path),
+            )
         elif config.allow_fallback:
             assets = generate_fallback_assets(generation_input, book_name, asset_checks)
         else:
@@ -108,14 +116,15 @@ def process_one(input_path: Path, config: AppConfig) -> Path:
     except Exception as exc:
         err_dir = config.error_dir / output_folder_name(processing_path)
         err_dir.mkdir(parents=True, exist_ok=True)
-        (err_dir / "error_report.md").write_text(
-            "# エラーレポート\n\n"
-            f"対象ファイル: {processing_path.name}\n\n"
-            f"エラー内容: {exc}\n\n"
-            "## 詳細\n\n"
-            f"```\n{traceback.format_exc()}\n```\n",
-            encoding="utf-8",
-        )
+        if not isinstance(exc, AIResponseJSONParseError):
+            (err_dir / "error_report.md").write_text(
+                "# エラーレポート\n\n"
+                f"対象ファイル: {processing_path.name}\n\n"
+                f"エラー内容: {exc}\n\n"
+                "## 詳細\n\n"
+                f"```\n{traceback.format_exc()}\n```\n",
+                encoding="utf-8",
+            )
         if processing_path.name == "source.txt" and processing_path.parent.parent == config.processing_dir:
             move_path(processing_path.parent, err_dir)
         else:
@@ -159,7 +168,15 @@ def process_flat_inputs(config: AppConfig) -> Path:
             source_text += "\n\n# scene_19_related_source\n" + read_rtfd_zip_text(selection.related_source)
         rules_text = load_rules(config.rules_dir)
         if config.use_ai:
-            assets = generate_ai_assets(source_text, book_slug, rules_text, model=config.model, asset_checks=[])
+            assets = generate_ai_assets(
+                source_text,
+                book_slug,
+                rules_text,
+                model=config.model,
+                asset_checks=[],
+                raw_response_path=out_dir / "debug" / "raw_ai_response.txt",
+                error_dir=config.error_dir / f"{selection.run_date.isoformat()}_{book_slug}",
+            )
         elif config.allow_fallback:
             assets = generate_fallback_assets(source_text, book_slug, [])
         else:
@@ -187,14 +204,15 @@ def process_flat_inputs(config: AppConfig) -> Path:
     except Exception as exc:
         err_dir = config.error_dir / f"{selection.run_date.isoformat()}_{book_slug}"
         err_dir.mkdir(parents=True, exist_ok=True)
-        (err_dir / "error_report.md").write_text(
-            "# エラーレポート\n\n"
-            f"対象ファイル: {source_path.name if source_path else '未確定'}\n\n"
-            f"エラー内容: {exc}\n\n"
-            "## 詳細\n\n"
-            f"```\n{traceback.format_exc()}\n```\n",
-            encoding="utf-8",
-        )
+        if not isinstance(exc, AIResponseJSONParseError):
+            (err_dir / "error_report.md").write_text(
+                "# エラーレポート\n\n"
+                f"対象ファイル: {source_path.name if source_path else '未確定'}\n\n"
+                f"エラー内容: {exc}\n\n"
+                "## 詳細\n\n"
+                f"```\n{traceback.format_exc()}\n```\n",
+                encoding="utf-8",
+            )
         for used_file in selection.used_files:
             if used_file.exists():
                 move_file(used_file, err_dir)
