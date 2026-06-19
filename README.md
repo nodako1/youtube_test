@@ -105,4 +105,68 @@ output/
 - 成功時は`archive/`へ移動
 - 失敗時は`error/`へ移動
 
-画像ファイルそのものの生成はv2で追加する想定です。
+画像ファイルそのものの生成は、input直下運用で`--generate-images`を指定した場合にOpenAI Images APIで実行できます。
+
+## input直下運用とOpenAI画像生成
+
+`assets/`フォルダや`source.txt`を使わず、`input/`直下のファイル名から役割を判定する運用にも対応しています。
+ファイル名の先頭8桁を日付キーとして扱います。
+
+```text
+input/
+├── 20260619_author.jpg
+├── 20260619_book_cover.webp
+├── 20260619_否定しない言い換え事典.rtfd.zip
+├── 20260616_雑談する人はなぜかうまくいく.rtfd.zip
+└── 20260616_book_cover.webp
+```
+
+判定ルールは以下です。
+
+- 今日の日付の `.rtfd.zip`：今回の動画の原稿材料
+- 今日の日付の `_book_cover` 画像：今回の本のブックカバー。`scene_03`とサムネイルで参照
+- 今日の日付の `_author` 画像：今回の著者参考画像。`scene_04`で参照。任意
+- 過去日付の `.rtfd.zip`：`scene_19`で紹介する過去動画・関連動画の内容
+- 過去日付の `_book_cover` 画像：`scene_19`で紹介する過去動画・関連動画のブックカバー
+
+OpenAI APIで画像ファイルを生成する場合は、環境変数`OPENAI_API_KEY`を設定し、`--generate-images`を指定します。
+画像生成はOpenAI Images APIを使用し、参照画像がある場合は画像編集エンドポイント、参照画像がない場合は画像生成エンドポイントを使います。
+
+まず`scene_03`だけをテスト生成する場合：
+
+```bash
+PYTHONPATH=src python -m bookbase_automation.cli --root . --use-ai --generate-images --image-scene03-only
+```
+
+全20シーンとサムネイル3枚を生成する場合：
+
+```bash
+PYTHONPATH=src python -m bookbase_automation.cli --root . --use-ai --generate-images
+```
+
+出力例：
+
+```text
+output/
+└── YYYY-MM-DD_book_slug/
+    ├── script.md
+    ├── image_prompts.md
+    ├── metadata.md
+    ├── quality_report.md
+    ├── failed_images.md
+    ├── research/
+    │   ├── scene_11_story_person.md
+    │   └── scene_15_quote_person.md
+    ├── images/
+    │   ├── scene_01.png
+    │   ├── scene_02.png
+    │   ├── scene_03.png
+    │   └── scene_20.png
+    └── thumbnails/
+        ├── thumbnail_A_loss_aversion.png
+        ├── thumbnail_B_benefit.png
+        └── thumbnail_C_curiosity.png
+```
+
+画像生成に失敗しても処理全体は止めず、成功した画像は保存し、失敗した画像は`failed_images.md`と`quality_report.md`に記録します。
+`scene_11`と`scene_15`の人物画像はinputでは受け取らず、原稿・確認メモに基づき、確認が弱い場合は顔を想像せずシルエットや象徴表現、名言カード、静物構図へフォールバックします。

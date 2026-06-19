@@ -86,3 +86,37 @@ def test_run_processes_folder_input_with_latest_assets_and_related_video(tmp_pat
     assert "NEEDS_REVIEW" in research_11
     assert not input_folder.exists()
     assert (config.archive_dir / "20260618_test_book" / "source.txt").exists()
+
+
+def test_run_processes_flat_rtfd_inputs_and_writes_scene03_prompt(tmp_path: Path):
+    from datetime import date
+    from zipfile import ZipFile
+
+    config = AppConfig.from_root(tmp_path, allow_fallback=True, image_scene03_only=True)
+    config.ensure_directories()
+    today = date.today().strftime("%Y%m%d")
+    current = config.input_dir / f"{today}_否定しない言い換え事典.rtfd.zip"
+    related = config.input_dir / "20260616_雑談する人はなぜかうまくいく.rtfd.zip"
+    with ZipFile(current, "w") as archive:
+        archive.writestr("TXT.rtf", "否定しない言い換えの読書メモです。")
+    with ZipFile(related, "w") as archive:
+        archive.writestr("TXT.rtf", "雑談に関する過去動画メモです。")
+    (config.input_dir / f"{today}_book_cover.webp").write_bytes(b"fake cover")
+    (config.input_dir / f"{today}_author.jpg").write_bytes(b"fake author")
+    (config.input_dir / "20260616_book_cover.webp").write_bytes(b"fake related cover")
+
+    outputs = run(config)
+
+    out_dir = outputs[0]
+    assert (out_dir / "script.md").exists()
+    assert (out_dir / "image_prompts.md").exists()
+    assert (out_dir / "failed_images.md").read_text(encoding="utf-8").startswith("# failed_images.md")
+    report = (out_dir / "quality_report.md").read_text(encoding="utf-8")
+    prompts = (out_dir / "image_prompts.md").read_text(encoding="utf-8")
+    assert "今回の原稿材料：OK" in report
+    assert "今回のブックカバー：OK" in report
+    assert "scene_03：NEEDS_REVIEW" in report
+    assert "scene_03.png" in prompts
+    assert "book_cover" in prompts
+    assert not list(config.input_dir.iterdir())
+    assert list(config.archive_dir.iterdir())
