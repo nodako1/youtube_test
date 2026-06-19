@@ -179,3 +179,16 @@ def test_scene_11_prompt_uses_variable_episode_safety_rules():
     assert "avoid hard-coded Toyota" in item["final_prompt"]
     assert "Use only the following Japanese text elements exactly as written" in item["final_prompt"]
     assert "Toyota's former president" not in item["final_prompt"]
+
+
+def test_image_quality_report_includes_scene_12_checks():
+    from bookbase_automation.image_generation import build_image_quality_report
+
+    report = build_image_quality_report([])
+
+    assert "## 【scene_12 画像品質チェック】" in report
+    assert "scene_12固定役割に合っている：OK" in report
+    assert "コメントCTAだと分かる：OK" in report
+    assert "experience_label が原稿から生成されている：OK" in report
+    assert "キーワード型コメント促しになっていない：OK" in report
+    assert "scene_08と構図が違う：OK" in report

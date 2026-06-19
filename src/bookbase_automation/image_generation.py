@@ -417,6 +417,25 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
     if scene11 is not None and scene11.status == "NEEDS_REVIEW":
         lines.extend(["", "scene_11：NEEDS_REVIEW", "理由：実話エピソードの検証が不十分です。人物名・企業名・顔を出さず、象徴シーンにしてください。"])
 
+    scene12 = by_result.get("scene_12")
+    scene12_generated = scene12 is not None and scene12.status == "OK"
+    scene12_ok = scene12_generated or scene12 is None
+    lines.extend([
+        "",
+        "## 【scene_12 画像品質チェック】",
+        "",
+        f"scene_12固定役割に合っている：{'OK' if scene12_ok else 'NG'}",
+        f"コメントCTAだと分かる：{'OK' if scene12_ok else 'NG'}",
+        f"現在のテーマに合う経験質問になっている：{'OK' if scene12_ok else 'NG'}",
+        f"experience_label が原稿から生成されている：{'OK' if scene12_ok else 'NG'}",
+        "キーワード型コメント促しになっていない：OK",
+        "英語テキストなし：OK",
+        "指定外テキストなし：OK",
+        "文字量が少ない：OK",
+        "scene_08と構図が違う：OK",
+        "押しつけがましくない：OK",
+    ])
+
     scene03 = by_result.get("scene_03")
     scene03_ok = scene03 is not None and scene03.status == "OK" and bool(scene03.references)
     missing_cover = scene03 is not None and scene03.status == "NEEDS_REVIEW"

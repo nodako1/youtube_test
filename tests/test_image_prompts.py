@@ -254,3 +254,25 @@ def test_scene_10_fallback_prompt_concretizes_key_point_2_dynamically():
     assert "avoid generic business people" in scene_10["final_prompt"]
     assert "avoid repeating the Scene 09 composition" in scene_10["final_prompt"]
     assert "Watercolor style split-screen showing cause and effect flowchart alongside business people" not in scene_10["final_prompt"]
+
+
+def test_scene_12_fallback_prompt_uses_comment_cta_experience_label():
+    assets = generate_fallback_assets("本のメモ", "否定しない言い換え事典")
+    prompts = json.loads(assets.image_prompts)
+    scene_12 = prompts[11]
+
+    assert scene_12["scene"] == 12
+    assert scene_12["fixed_role"] == "コメントCTA"
+    assert scene_12["comment_question"]
+    assert scene_12["experience_label"]
+    assert scene_12["cta_label"] == "コメントで教えてください"
+    assert scene_12["visual_structure"] in {"comment_card", "speech_bubbles", "viewer_participation", "notebook_comment"}
+    assert scene_12["exact_text_elements"] == ["あなたの経験は？", scene_12["experience_label"], "コメントで教えてください"]
+    assert "Current comment question:" in scene_12["final_prompt"]
+    assert "Experience label:" in scene_12["final_prompt"]
+    assert "Use only the following Japanese text elements exactly as written" in scene_12["final_prompt"]
+    assert "Avoid English text" in scene_12["final_prompt"]
+    assert "avoid keyword-comment prompts" in scene_12["final_prompt"]
+    assert "avoid repeating the Scene 08 subscription CTA composition" in scene_12["final_prompt"]
+    assert "Similar experience?" not in scene_12["final_prompt"]
+    assert "Subscribe" not in scene_12["final_prompt"]
