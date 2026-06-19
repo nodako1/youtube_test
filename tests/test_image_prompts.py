@@ -505,3 +505,36 @@ def test_thumbnail_b_benefit_prompt_uses_permanent_quality_structure(tmp_path: P
     assert "cheap self-help thumbnail" in thumbnail_b.prompt
     assert "thumbnail_A_loss_aversion" in thumbnail_b.prompt
     assert "bright aspirational desk layout" in thumbnail_b.prompt
+
+
+def test_thumbnail_c_curiosity_prompt_uses_permanent_quality_structure(tmp_path: Path):
+    cover = tmp_path / "20260619_book_cover.webp"
+    cover.write_bytes(b"cover")
+    selection = FlatInputSelection(
+        run_date=date(2026, 6, 19),
+        date_key="20260619",
+        current_sources=[],
+        current_book_covers=[cover],
+        current_authors=[],
+        related_sources=[],
+        related_book_covers=[],
+    )
+
+    targets = build_image_targets(tmp_path / "output", "[]", selection, scenes=[], include_thumbnails=True)
+    thumbnail_c = next(target for target in targets if target.key == "thumbnail_C_curiosity")
+
+    assert thumbnail_c.references == (cover,)
+    assert "This is thumbnail pattern C: contrarian curiosity" in thumbnail_c.prompt
+    assert "Use the reference image as the current book cover" in thumbnail_c.prompt
+    assert str(cover) in thumbnail_c.prompt
+    assert "Main comment text:\n考える前に整える" in thumbnail_c.prompt
+    assert "Curiosity trigger:" in thumbnail_c.prompt
+    assert "Contrarian angle:" in thumbnail_c.prompt
+    assert "Curiosity style:\nsubtle_contradiction" in thumbnail_c.prompt
+    assert "Visual structure:\nunexpected_split_layout" in thumbnail_c.prompt
+    assert "Use only the following Japanese text element exactly as written" in thumbnail_c.prompt
+    assert "1. 考える前に整える" in thumbnail_c.prompt
+    assert "meaningless quirky design" in thumbnail_c.prompt
+    assert "thumbnail_A_loss_aversion" in thumbnail_c.prompt
+    assert "thumbnail_B_benefit" in thumbnail_c.prompt
+    assert "current book cover as a key visual" in thumbnail_c.prompt

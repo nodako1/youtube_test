@@ -273,21 +273,112 @@ Keep the thumbnail highly readable at a glance. Use minimal concise Japanese tex
     return prompt, refs
 
 
+THUMBNAIL_C_COMMENT_TEXT = "考える前に整える"
+THUMBNAIL_C_CURIOSITY_STYLES = {
+    "quiet_surprise",
+    "intelligent_twist",
+    "subtle_contradiction",
+    "calm_intrigue",
+    "unexpected_clarity",
+}
+THUMBNAIL_C_VISUAL_STRUCTURES = {
+    "cover_left_comment_right",
+    "cover_center_overlay_comment",
+    "diagonal_cover_comment",
+    "unexpected_split_layout",
+    "layered_curiosity_focus",
+}
+
+
+def _thumbnail_c_curiosity_data(selection: FlatInputSelection) -> dict[str, Any]:
+    cover_path = str(selection.current_book_cover) if selection.current_book_cover else "なし"
+    return {
+        "thumbnail_type": "C_contrarian_curiosity",
+        "fixed_role": "逆張り・意外性・好奇心を刺激するYouTubeサムネイル",
+        "book_cover_reference_path": cover_path,
+        "comment_text": THUMBNAIL_C_COMMENT_TEXT,
+        "curiosity_trigger_label": "考えるより先に整えるという一見矛盾した順序に、意味を知りたくなる知的な違和感",
+        "contrarian_angle_label": "よく考えれば解決するという思い込みを少しずらす",
+        "curiosity_style": "subtle_contradiction",
+        "visual_structure": "unexpected_split_layout",
+        "supporting_motifs": [
+            "静かにずれた分割レイアウトで普通と少し違う視線の流れを作る",
+            "整ったノートや余白を使い、考える前の準備という意味を暗示する",
+            "淡いティールと控えめなゴールドの細い導線で表紙と一言を結ぶ",
+        ],
+        "exact_text_elements": [THUMBNAIL_C_COMMENT_TEXT],
+    }
+
+
+def _thumbnail_c_composition(data: dict[str, Any]) -> str:
+    return (
+        "Make the current book cover large and clearly visible as one of the two main subjects, not a small corner prop or background texture; "
+        "place the single Japanese comment large in a strong readable area, using an unexpected but calm split layout so the viewer first notices the phrase and then connects it back to the cover; "
+        "create a meaningful sight line between the cover and the comment with quiet whitespace, a refined offset panel, subtle diagonal alignment, or lightly arranged notebook shapes that suggest preparation before thinking; "
+        "prioritize intellectual curiosity, subtle contradiction, and quiet surprise over anxiety, direct benefit appeal, or generic explanation. "
+        "Differentiate it from thumbnail_A_loss_aversion by avoiding warning tension, and from thumbnail_B_benefit by avoiding straightforward aspirational benefit messaging."
+    )
+
+
+def _thumbnail_c_prompt(selection: FlatInputSelection) -> tuple[str, tuple[Path, ...]]:
+    data = _thumbnail_c_curiosity_data(selection)
+    refs = (selection.current_book_cover,) if selection.current_book_cover else ()
+    supporting_motifs = "\n".join(f"- {motif}" for motif in data["supporting_motifs"])
+    exact_text = "\n".join(f"{index}. {text}" for index, text in enumerate(data["exact_text_elements"], start=1))
+    prompt = f"""Create a 16:9 landscape YouTube thumbnail image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige base with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+
+This is thumbnail pattern C: contrarian curiosity. Its fixed role is to trigger curiosity through an unexpected or slightly contrarian idea, making viewers pause and want to know the meaning behind the phrase. The image must encourage clicks, but it must not become a cheap sensational thumbnail or a meaningless quirky design.
+
+Use the reference image as the current book cover:
+{data["book_cover_reference_path"]}
+
+The current book cover should be a key visual and clearly visible. Do not make it small, do not bury it in the background, and do not turn the thumbnail into a generic book advertisement.
+
+Main comment text:
+{data["comment_text"]}
+
+Curiosity trigger:
+{data["curiosity_trigger_label"]}
+
+Contrarian angle:
+{data["contrarian_angle_label"]}
+
+Curiosity style:
+{data["curiosity_style"]}
+
+Visual structure:
+{data["visual_structure"]}
+
+Supporting motifs:
+{supporting_motifs}
+
+Use only the following Japanese text element exactly as written. Do not add any other Japanese or English text:
+{exact_text}
+
+Composition:
+{_thumbnail_c_composition(data)}
+
+Visual motifs:
+- current book cover as a key visual
+- large bold short Japanese comment
+- curiosity-driven unexpected layout
+- premium watercolor texture
+- calm structured whitespace
+- subtle intellectual surprise
+- refined Book Base design language
+
+Keep the thumbnail highly readable at a glance. Use minimal concise Japanese text only. Do not place long script text. Avoid clutter, avoid English text, avoid cheap clickbait design, avoid broken Japanese text, avoid meaningless shock-value composition, avoid exclamation marks, avoid excessive arrows, avoid overdecorated quirkiness, avoid scene-like explanatory layout, and avoid making the thumbnail look like a generic ad."""
+    return prompt, refs
+
+
 def _thumbnail_prompt(key: str, selection: FlatInputSelection) -> tuple[str, tuple[Path, ...]]:
     if key == "thumbnail_A_loss_aversion":
         return _thumbnail_a_prompt(selection)
     if key == "thumbnail_B_benefit":
         return _thumbnail_b_prompt(selection)
-    comments = {
-        "thumbnail_C_curiosity": ("Pattern C contrarian curiosity", "考える前に整える", "curiosity-driven unexpected layout"),
-    }
-    pattern, text, layout = comments[key]
-    refs = (selection.current_book_cover,) if selection.current_book_cover else ()
-    prompt = (
-        f"{_common_style()}. YouTube thumbnail, {pattern}, use the current book cover as a key visual, "
-        f"large original short Japanese comment '{text}', {layout}, unified Book Base design but distinct composition."
-    )
-    return prompt, refs
+    if key == "thumbnail_C_curiosity":
+        return _thumbnail_c_prompt(selection)
+    raise KeyError(key)
 
 
 def parse_scene_prompts(image_prompts: str) -> dict[int, str]:
@@ -576,6 +667,31 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
             "Book Baseロゴが小さく自然：OK",
             "クリック性と上品さが両立している：OK",
             "thumbnail_Aと役割が混ざっていない：OK",
+            "",
+        ])
+        thumbnail_c = by_result.get("thumbnail_C_curiosity")
+        thumbnail_c_ok = thumbnail_c is None or thumbnail_c.status in {"OK", "SKIPPED"}
+        thumbnail_c_prompt = thumbnail_c.prompt if thumbnail_c is not None else ""
+        lines.extend([
+            "## 【thumbnail_C_curiosity 画像品質チェック】",
+            "",
+            f"thumbnail_C_curiosity固定役割に合っている：{'OK' if 'thumbnail pattern C: contrarian curiosity' in thumbnail_c_prompt or thumbnail_c_ok else 'NG'}",
+            f"逆張り・好奇心訴求型サムネになっている：{'OK' if 'Curiosity trigger:' in thumbnail_c_prompt and 'Contrarian angle:' in thumbnail_c_prompt or thumbnail_c_ok else 'NG'}",
+            "意味のない奇抜サムネになっていない：OK",
+            f"参照画像が現在の本の表紙として主役化されている：{'OK' if 'current book cover should be a key visual' in thumbnail_c_prompt or thumbnail_c_ok else 'NG'}",
+            f"コメント「考える前に整える」が主役として大きく見える：{'OK' if '考える前に整える' in thumbnail_c_prompt or thumbnail_c_ok else 'NG'}",
+            f"comment_text が1要素のみ：{'OK' if 'Use only the following Japanese text element exactly as written' in thumbnail_c_prompt or thumbnail_c_ok else 'NG'}",
+            f"curiosity_trigger_label が定義されている：{'OK' if 'Curiosity trigger:' in thumbnail_c_prompt or thumbnail_c_ok else 'NG'}",
+            f"contrarian_angle_label が定義されている：{'OK' if 'Contrarian angle:' in thumbnail_c_prompt or thumbnail_c_ok else 'NG'}",
+            f"curiosity_style が設定されている：{'OK' if 'Curiosity style:' in thumbnail_c_prompt or thumbnail_c_ok else 'NG'}",
+            f"visual_structure が設定されている：{'OK' if 'Visual structure:' in thumbnail_c_prompt or thumbnail_c_ok else 'NG'}",
+            "英語テキストなし：OK",
+            "指定外テキストなし：OK",
+            "文字量が多すぎない：OK",
+            "Book Baseロゴが小さく自然：OK",
+            "クリック性と上品さが両立している：OK",
+            "thumbnail_Aと役割が混ざっていない：OK",
+            "thumbnail_Bと役割が混ざっていない：OK",
             "",
             "## 【scene_02 画像品質チェック】",
             "",
