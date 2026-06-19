@@ -79,8 +79,11 @@ def _scene_prompt(scene: int, source_prompt: str, selection: FlatInputSelection)
         refs.append(selection.current_book_cover)
     if scene == 4 and selection.current_author:
         refs.append(selection.current_author)
-    if scene == 19 and selection.related_book_cover:
-        refs.append(selection.related_book_cover)
+    if scene == 19:
+        if selection.current_book_cover:
+            refs.append(selection.current_book_cover)
+        if selection.related_book_cover:
+            refs.append(selection.related_book_cover)
     if "Use only the following Japanese text elements exactly as written" in source_prompt:
         prompt = source_prompt
     else:

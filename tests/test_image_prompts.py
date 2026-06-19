@@ -351,3 +351,53 @@ def test_scene_17_prompt_recaps_current_points_as_ordered_flow():
     assert "Do not create a generic three-card image without meaning" in scene_17["final_prompt"]
     assert "Use only the following Japanese text elements exactly as written" in scene_17["final_prompt"]
     assert "Points 1" not in scene_17["final_prompt"]
+
+
+def test_scene_19_prompt_connects_current_and_related_books_without_cta():
+    from bookbase_automation.assets import AssetCheck
+
+    checks = [
+        AssetCheck(3, "scene_03_current_book_cover", "今回紹介する本のブックカバー", "OK", "input/20260619_book_cover.webp", "使用画像"),
+        AssetCheck(19, "scene_19_related_book_cover", "関連動画側の本のブックカバー", "OK", "input/20260616_book_cover.webp", "使用画像"),
+    ]
+    source = "今回の本のメモ\n# scene_19_related_source\n過去動画の本は、仕事の習慣を日常に広げるテーマ。"
+    assets = generate_fallback_assets(source, "否定しない言い換え事典", checks)
+    scene_19 = json.loads(assets.image_prompts)[18]
+
+    assert scene_19["fixed_role"] == "現在の本と関連過去動画の本を自然につなぐ接続シーン"
+    assert scene_19["current_book_label"]
+    assert scene_19["related_book_label"]
+    assert scene_19["connection_reason"]
+    assert scene_19["connection_type"] in {"same_theme", "next_step", "practical_extension", "contrast_and_deepen", "money_or_life_application"}
+    assert scene_19["visual_structure"] in {"book_bridge", "light_path", "flowing_pages", "ribbon_connection", "two_books_perspective"}
+    assert scene_19["reference_image_path"] == "input/20260619_book_cover.webp"
+    assert scene_19["related_book_cover_path"] == "input/20260616_book_cover.webp"
+    assert len(scene_19["exact_text_elements"]) == 1
+    assert len(scene_19["exact_text_elements"][0]) <= 15
+    assert "Use the reference image as the current book cover" in scene_19["final_prompt"]
+    assert "related past-video book cover as the second book" in scene_19["final_prompt"]
+    assert "Do not make it a closing or thank-you scene like Scene 20" in scene_19["final_prompt"]
+    assert "こちらもおすすめ" not in scene_19["final_prompt"]
+    assert "クリック" not in scene_19["final_prompt"]
+
+
+def test_scene_19_target_uses_current_and_related_cover_references(tmp_path: Path):
+    current = tmp_path / "20260619_book_cover.webp"
+    related = tmp_path / "20260616_book_cover.webp"
+    current.write_bytes(b"current")
+    related.write_bytes(b"related")
+    selection = FlatInputSelection(
+        run_date=date(2026, 6, 19),
+        date_key="20260619",
+        current_sources=[],
+        current_book_covers=[current],
+        current_authors=[],
+        related_sources=[],
+        related_book_covers=[related],
+    )
+    assets = generate_fallback_assets("本のメモ", "テスト本")
+
+    targets = build_image_targets(tmp_path / "output", assets.image_prompts, selection, scenes=[19], include_thumbnails=False)
+
+    assert targets[0].references == (current, related)
+    assert "Use the reference image as the current book cover" in targets[0].prompt

@@ -76,6 +76,7 @@ def build_image_context(script: str, book_title: str, asset_checks: list[AssetCh
     theme = _short_label(scene2 or scene3, "現在の動画テーマ", 18)
     context = {
         "book_title": book_title,
+        "source_text": script,
         "author_name": author,
         "current_theme": theme,
         "quiz": {
@@ -95,6 +96,7 @@ def build_image_context(script: str, book_title: str, asset_checks: list[AssetCh
         "assets": {
             "book_cover": _asset_path(asset_checks, "scene_03_current_book_cover"),
             "author_reference": _asset_path(asset_checks, "scene_04_author_reference"),
+            "related_book_cover": _asset_path(asset_checks, "scene_19_related_book_cover"),
         },
     }
     return context
@@ -1348,6 +1350,106 @@ def _build_research_scene_15(*, verified: bool = False) -> str:
         ]
     ) + "\n"
 
+
+def _scene_19_connection_type(current_text: str, related_text: str) -> str:
+    combined = f"{current_text} {related_text}"
+    if re.search(r"お金|資産|投資|家計|生活設計|人生設計|将来", combined):
+        return "money_or_life_application"
+    if re.search(r"一方|逆|対比|やめる|続ける|休み|頑張", combined):
+        return "contrast_and_deepen"
+    if re.search(r"実践|応用|仕事|生活|日常|習慣|行動", combined):
+        return "practical_extension"
+    if re.search(r"次|さらに|深ま|広が|進め|つな", combined):
+        return "next_step"
+    return "same_theme"
+
+
+def _scene_19_visual_structure(connection_type: str) -> str:
+    mapping = {
+        "same_theme": "book_bridge",
+        "next_step": "light_path",
+        "practical_extension": "flowing_pages",
+        "contrast_and_deepen": "ribbon_connection",
+        "money_or_life_application": "two_books_perspective",
+    }
+    return mapping.get(connection_type, "book_bridge")
+
+
+def _scene_19_composition(visual_structure: str) -> str:
+    mapping = {
+        "book_bridge": "構図A：左側に今回の本、右側に過去動画の本を置き、2冊の間を柔らかく光る橋でつなぐ。学びの橋渡しを自然に見せ、商品広告の横並びにはしない。",
+        "light_path": "構図A：現在の本から過去動画の本へ、淡い光の道が続く。次の学びへ自然に進む印象にし、強い矢印やクリック誘導は使わない。",
+        "flowing_pages": "構図B：今回の本のページから光や紙片が流れて別の本へつながる。本から本へ学びが広がる印象を出し、説明文で埋めない。",
+        "ribbon_connection": "構図D：2冊の本を細いリボンややわらかな線で控えめにつなぐ。広告感を抑え、上品でミニマルな関連性を見せる。",
+        "two_books_perspective": "構図C：手前に今回の本、奥に関連する過去動画の本を置き、淡い線や光で奥行きのある関係性を見せる。締めの余韻ではなく接続を主役にする。",
+    }
+    return mapping.get(visual_structure, mapping["book_bridge"])
+
+
+def _scene_19_structured_prompt(context: dict[str, object]) -> dict[str, object]:
+    scene_bodies = context.get("scene_bodies", {})
+    scene18_body = str(scene_bodies.get("scene_18", "")) if isinstance(scene_bodies, dict) else ""
+    current_label = _short_label(str(context.get("current_theme", "")) or scene18_body, "今回の学び", 12)
+    related_source = str(context.get("source_text", ""))
+    related_section = related_source.split("# scene_19_related", 1)[-1] if "# scene_19_related" in related_source else related_source
+    related_label = _short_label(related_section, "関連する学び", 12)
+    connection_type = _scene_19_connection_type(current_label + scene18_body, related_label + related_section)
+    visual_structure = _scene_19_visual_structure(connection_type)
+    composition = _scene_19_composition(visual_structure)
+    connection_reason = _short_label(f"{current_label}から{related_label}へ理解が広がる", "学びが自然につながる", 28)
+    message_by_type = {
+        "same_theme": "理解が深まる",
+        "next_step": "次の一冊へ",
+        "practical_extension": "学びがつながる",
+        "contrast_and_deepen": "理解が深まる",
+        "money_or_life_application": "学びがつながる",
+    }
+    connection_message = message_by_type.get(connection_type, "学びがつながる")
+    current_cover = context["assets"].get("book_cover") if isinstance(context.get("assets"), dict) else None
+    related_cover = context["assets"].get("related_book_cover") if isinstance(context.get("assets"), dict) else None
+    elements = [connection_message]
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant, sophisticated atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+
+This is Scene 19. Its fixed role is to naturally connect the current book with a related book from a past video. The image should communicate continuity of learning, broader understanding, and a gentle path toward the next related learning. It must not look like a simple advertisement, a clickbait banner, or a product promotion. Do not make it a closing or thank-you scene like Scene 20.
+
+Use the reference image as the current book cover:
+{current_cover or 'current book cover reference unavailable'}
+
+Use the related past-video book cover as the second book when available:
+{related_cover or 'related book cover reference unavailable'}
+
+Current book label:
+{current_label}
+
+Related past-video book label:
+{related_label}
+
+Connection reason:
+{connection_reason}
+
+Connection type:
+{connection_type}
+
+Visual structure:
+{visual_structure}
+
+{TEXT_LOCK_INSTRUCTION}:
+{_text_block(elements)}
+
+Composition:
+{composition}
+
+Visual motifs:
+- two books connected naturally
+- softly glowing bridge, light path, flowing pages, or subtle ribbon
+- calm structured whitespace
+- premium watercolor texture
+- gentle teal and subtle gold accents
+- sophisticated and inviting atmosphere
+
+Keep the image clean and easy to understand at a glance. Use minimal Japanese text only. Do not place long script text. Avoid clutter, avoid English text, avoid advertisement-like design, avoid clickbait CTA, avoid excessive arrows, and avoid making the two books look unrelated."""
+    return {"scene": 19, "fixed_role": "現在の本と関連過去動画の本を自然につなぐ接続シーン", "scene_role": "現在の本と関連過去動画の本を自然につなぐ接続シーン", "current_book_label": current_label, "related_book_label": related_label, "connection_reason": connection_reason, "connection_message": connection_message, "connection_type": connection_type, "visual_structure": visual_structure, "reference_image_path": current_cover, "related_book_cover_path": related_cover, "exact_text_elements": elements, "composition": composition, "visual_motifs": ["two books connected naturally", "softly glowing bridge", "light path", "flowing pages", "subtle ribbon", "calm structured whitespace"], "style": _COMMON_STYLE_FOR_SCHEMA, "negative_rules": ["CTA文を入れない", "広告バナー風にしない", "2冊をただ横に並べない", "参照画像だけを大きく表示しない", "過去動画側の本を省略しない", "英語テキストを入れない", "scene_20の締め画像にしない"], "variation_key": f"scene-19-learning-connection-{visual_structure}", "core_message": connection_message, "final_prompt": final_prompt}
+
 def _image_block_metadata(scene: int) -> dict[str, str]:
     if 1 <= scene <= 4:
         block = "シーン1〜4：冒頭導入・クイズ・本紹介・重要ポイント提示"
@@ -1416,6 +1518,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
     scene_15_prompt = _scene_15_structured_prompt(context) if scene == 15 else None
     scene_16_prompt = _scene_16_structured_prompt(context) if scene == 16 else None
     scene_17_prompt = _scene_17_structured_prompt(context) if scene == 17 else None
+    scene_19_prompt = _scene_19_structured_prompt(context) if scene == 19 else None
     meta = _image_block_metadata(scene)
     composition_by_point = {
         "重要ポイント1": "仕事机、ノート、タスク、時計を使い、土台・入口・最初の気づきが伝わる構図",
@@ -1537,6 +1640,13 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         differentiation = "scene_04のこれから話す予告構図ではなく、3ポイントを学び終えた後の総整理・到達感のある流れ構図へ変える。scene_20の締め挨拶とも混ぜない"
         prompt = str(scene_17_prompt["final_prompt"])
         recommended_composition = str(scene_17_prompt["composition"])
+    elif scene_19_prompt:
+        purpose = str(scene_19_prompt["scene_role"])
+        text = " / ".join(scene_19_prompt["exact_text_elements"])
+        differentiation = "scene_18の実践化から、今回の本と過去動画の本をつなぐ接続シーンへ変える。scene_20の締め挨拶や広告CTAとは混ぜない"
+        prompt = str(scene_19_prompt["final_prompt"])
+        recommended_composition = str(scene_19_prompt["composition"])
+        asset_note = "scene_19では今回の本の表紙を現在の本として扱い、関連過去動画の本も省略せず2冊の接続を描きます。" if used_image != "なし" else "scene_19：NEEDS_REVIEW。理由：関連過去動画側の本のブックカバーが見つかりません。2冊目を省略せず、入力確認後に生成してください。"
     else:
         recommended_composition = composition_by_point[point]
         prompt = (
@@ -1545,7 +1655,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
             f"scene {scene}, {meta['所属ブロック']}, {meta['ブロック内での役割']}, "
             f"{recommended_composition}, no long text, one clear message, avoid repeating adjacent composition"
         )
-    structured_prompt = scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt or scene_08_prompt or scene_09_prompt or scene_10_prompt or scene_11_prompt or scene_12_prompt or scene_13_prompt or scene_14_prompt or scene_15_prompt or scene_16_prompt or scene_17_prompt
+    structured_prompt = scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt or scene_08_prompt or scene_09_prompt or scene_10_prompt or scene_11_prompt or scene_12_prompt or scene_13_prompt or scene_14_prompt or scene_15_prompt or scene_16_prompt or scene_17_prompt or scene_19_prompt
     return {
         "シーン番号": scene,
         "所属ブロック": meta["所属ブロック"],
@@ -1561,7 +1671,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         "使用画像": used_image,
         "入力画像チェック": asset_note,
         "needs_review": bool((scene == 3 and used_image == "なし") or (asset_check and asset_check.status == "MISSING" and scene in {19}) or scene in {11, 15}),
-        "最終プロンプト": prompt + (f", reference image: {used_image}, asset note: {asset_note}" if scene not in {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17} else ""),
+        "最終プロンプト": prompt + (f", reference image: {used_image}, asset note: {asset_note}" if scene not in {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19} else ""),
         "scene": scene,
         "prompt": prompt,
         "scene_role": structured_prompt["scene_role"] if structured_prompt else meta["ブロック内での役割"],
@@ -1587,6 +1697,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         **({"fixed_role": scene_15_prompt["fixed_role"], "point_3_label": scene_15_prompt["point_3_label"], "scene_15_core_message": scene_15_prompt["scene_15_core_message"], "quote_source_type": scene_15_prompt["quote_source_type"], "quote_source_name": scene_15_prompt["quote_source_name"], "quote_excerpt_label": scene_15_prompt["quote_excerpt_label"], "lesson_label": scene_15_prompt["lesson_label"], "attribution_status": scene_15_prompt["attribution_status"], "visual_mode": scene_15_prompt["visual_mode"]} if scene_15_prompt else {}),
         **({"fixed_role": scene_16_prompt["fixed_role"], "book_title": scene_16_prompt["book_title"], "book_cover_path": scene_16_prompt["book_cover_path"], "remaining_value_label": scene_16_prompt["remaining_value_label"], "read_invitation_label": scene_16_prompt["read_invitation_label"], "visual_mode": scene_16_prompt["visual_mode"], "post_process": scene_16_prompt["post_process"]} if scene_16_prompt else {}),
         **({"fixed_role": scene_17_prompt["fixed_role"], "point_1_label": scene_17_prompt["point_1_label"], "point_2_label": scene_17_prompt["point_2_label"], "point_3_label": scene_17_prompt["point_3_label"], "overall_takeaway_label": scene_17_prompt["overall_takeaway_label"], "point_relationship": scene_17_prompt["point_relationship"], "visual_structure": scene_17_prompt["visual_structure"]} if scene_17_prompt else {}),
+        **({"fixed_role": scene_19_prompt["fixed_role"], "current_book_label": scene_19_prompt["current_book_label"], "related_book_label": scene_19_prompt["related_book_label"], "connection_reason": scene_19_prompt["connection_reason"], "connection_message": scene_19_prompt["connection_message"], "connection_type": scene_19_prompt["connection_type"], "visual_structure": scene_19_prompt["visual_structure"], "reference_image_path": scene_19_prompt["reference_image_path"], "related_book_cover_path": scene_19_prompt["related_book_cover_path"]} if scene_19_prompt else {}),
     }
 
 
