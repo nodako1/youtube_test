@@ -40,13 +40,39 @@ class MockImages:
 class MockOpenAI:
     images = MockImages()
 
-    def __init__(self, api_key):
+    def __init__(self, api_key, timeout=None, max_retries=None):
         self.api_key = api_key
+        self.timeout = timeout
+        self.max_retries = max_retries
+
+
+class MockAPIConnectionError(Exception):
+    pass
+
+
+class MockAPITimeoutError(Exception):
+    pass
+
+
+class MockRateLimitError(Exception):
+    pass
+
+
+class MockAPIStatusError(Exception):
+    def __init__(self, message, status_code=500):
+        super().__init__(message)
+        self.status_code = status_code
 
 
 def install_mock_openai(monkeypatch):
     MockOpenAI.images = MockImages()
-    module = types.SimpleNamespace(OpenAI=MockOpenAI)
+    module = types.SimpleNamespace(
+        OpenAI=MockOpenAI,
+        APIConnectionError=MockAPIConnectionError,
+        APITimeoutError=MockAPITimeoutError,
+        RateLimitError=MockRateLimitError,
+        APIStatusError=MockAPIStatusError,
+    )
     monkeypatch.setitem(sys.modules, "openai", module)
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     return MockOpenAI.images
