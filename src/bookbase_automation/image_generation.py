@@ -480,8 +480,9 @@ def _progress_ok(progress: dict[str, Any], key: str, output_path: Path) -> bool:
     return exists_ok and ratio_ok
 
 
-def _progress_success(output_path: Path, image_size: tuple[int, int] | None, attempts: int) -> dict[str, Any]:
-    return {
+def _progress_success(output_path: Path, image_size: tuple[int, int] | None, attempts: int, records: list[OpenAIAPICallRecord] | None = None) -> dict[str, Any]:
+    recovered_records = [record for record in records or [] if record.final_result == "recovered"]
+    item: dict[str, Any] = {
         "status": "OK",
         "output_path": str(output_path),
         "image_size": f"{image_size[0]}x{image_size[1]}" if image_size else "unknown",
@@ -489,6 +490,11 @@ def _progress_success(output_path: Path, image_size: tuple[int, int] | None, att
         "completed_at": _now_iso(),
         "attempts": attempts,
     }
+    if recovered_records:
+        item["recovered"] = True
+        item["retry_count"] = sum(max(0, record.attempts - 1) for record in recovered_records)
+        item["recovered_errors"] = [record.error_type for record in recovered_records]
+    return item
 
 
 def _progress_failed(output_path: Path, error: Exception | str, attempts: int) -> dict[str, Any]:
@@ -640,7 +646,7 @@ def generate_images(targets: list[ImageTarget], *, model: str = "gpt-image-2", s
                 tmp_path.unlink(missing_ok=True)
             status = "OK" if exists_ok and ratio_ok else "FAILED"
             attempts = _attempts(progress, target.key) + 1
-            progress[target.key] = _progress_success(output_path, image_size, attempts) if status == "OK" else _progress_failed(output_path, validation_error, attempts)
+            progress[target.key] = _progress_success(output_path, image_size, attempts, api_records) if status == "OK" else _progress_failed(output_path, validation_error, attempts)
             save_image_progress(progress_root, progress)
             results.append(ImageResult(target.key, target.filename, status, target.prompt, tuple(str(p) for p in target.references), validation_error, str(output_path), exists_ok, image_size, ratio_ok, True, True, target.scene is not None, "Use only the following Japanese text elements exactly as written" in target.prompt or "minimal concise Japanese text" in target.prompt, format_openai_api_report(api_records)))
         except Exception as exc:  # keep processing other images
@@ -684,6 +690,39 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
             lines.extend(report.replace("## 【OpenAI API通信チェック】\n", "").strip().splitlines())
             lines.append("")
     selected_scenes = [3] if scene03_only else (scenes or list(range(1, 21)))
+    completed = [f"scene_{scene:02d}" for scene in selected_scenes if by_key.get(f"scene_{scene:02d}") == "OK"]
+    skipped = [f"scene_{scene:02d}" for scene in selected_scenes if by_key.get(f"scene_{scene:02d}") == "SKIPPED"]
+    failed = [f"scene_{scene:02d}" for scene in selected_scenes if by_key.get(f"scene_{scene:02d}") in {"FAILED", "NEEDS_REVIEW"}]
+    retry_count = 0
+    for result in results:
+        if "retry回数：" in result.api_communication_report:
+            for line in result.api_communication_report.splitlines():
+                if line.startswith("retry回数："):
+                    try:
+                        retry_count += max(0, int(line.split("：", 1)[1]) - 1)
+                    except ValueError:
+                        pass
+    final_status = "COMPLETED" if results and not failed and len(completed) + len(skipped) == len(selected_scenes) else ("PARTIAL" if completed or skipped else "FAILED")
+    if not selected_scenes:
+        target_text = "なし"
+    elif selected_scenes == list(range(selected_scenes[0], selected_scenes[-1] + 1)):
+        target_text = f"scene_{selected_scenes[0]:02d}〜scene_{selected_scenes[-1]:02d}"
+    else:
+        target_text = ", ".join(f"scene_{scene:02d}" for scene in selected_scenes)
+    lines.extend([
+        "## 【実行完了状況】",
+        "",
+        "原稿生成：OK",
+        "画像プロンプト生成：OK",
+        f"画像生成対象：{target_text}",
+        f"生成完了：{', '.join(completed) if completed else 'なし'}",
+        f"失敗：{', '.join(failed) if failed else 'なし'}",
+        f"スキップ：{', '.join(skipped) if skipped else 'なし'}",
+        f"次回再開推奨：{failed[0] if failed else 'なし'}",
+        f"retry回数：{retry_count}",
+        f"最終ステータス：{final_status}",
+        "",
+    ])
     for scene in selected_scenes:
         key = f"scene_{scene:02d}"
         result = by_result.get(key)

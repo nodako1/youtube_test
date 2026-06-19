@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import traceback
+import importlib.util
 from pathlib import Path
 
 from .assets import AssetCheck, build_asset_report, check_input_assets
@@ -241,6 +243,7 @@ def process_flat_inputs(config: AppConfig) -> Path:
         out_dir.mkdir(parents=True, exist_ok=True)
         (out_dir / "images").mkdir(exist_ok=True)
         (out_dir / "thumbnails").mkdir(exist_ok=True)
+        stable_selection = _copy_flat_reference_assets(selection, out_dir)
         source_text = read_rtfd_zip_text(source_path)
         if selection.related_source:
             source_text += "\n\n# scene_19_related_source\n" + read_rtfd_zip_text(selection.related_source)
@@ -251,7 +254,7 @@ def process_flat_inputs(config: AppConfig) -> Path:
                 book_slug,
                 rules_text,
                 model=config.model,
-                asset_checks=_flat_asset_checks(selection),
+                asset_checks=_flat_asset_checks(stable_selection),
                 raw_response_path=out_dir / "debug" / "raw_ai_response.txt",
                 error_dir=config.error_dir / f"{selection.run_date.isoformat()}_{book_slug}",
             )
@@ -259,7 +262,6 @@ def process_flat_inputs(config: AppConfig) -> Path:
             assets = generate_fallback_assets(source_text, book_slug, _flat_asset_checks(selection))
         else:
             raise RuntimeError("AI生成が無効です。本番実行では--use-aiを指定してください。動作確認のみ--allow-fallbackを使用できます。")
-        stable_selection = _copy_flat_reference_assets(selection, out_dir)
         selected_scenes = parse_image_scenes(config.image_scenes)
         targets = build_image_targets(out_dir, assets.image_prompts, stable_selection, scene03_only=config.image_scene03_only, scenes=selected_scenes, include_thumbnails=False)
         (out_dir / "image_prompts.md").write_text(render_prompts_markdown(targets), encoding="utf-8")
@@ -279,7 +281,7 @@ def process_flat_inputs(config: AppConfig) -> Path:
         _write_flat_outputs(out_dir, source_text, assets)
         report = build_quality_report(assets.script, assets.titles, assets.image_prompts, assets.description, source_text)
         report += build_metadata_quality_report(assets.metadata)
-        report += build_flat_input_report(selection)
+        report += build_flat_input_report(stable_selection)
         report += image_report
         report += _build_research_quality_report(assets.research_scene_11, assets.research_scene_15)
         report += assets.api_communication_report
@@ -308,6 +310,7 @@ def process_flat_inputs(config: AppConfig) -> Path:
 
 def run(config: AppConfig) -> list[Path]:
     config.ensure_directories()
+    preflight_check(config)
     if config.generate_images_only:
         if config.images_output_dir is None:
             raise RuntimeError("--generate-images-only には --output-dir が必要です。")
@@ -318,3 +321,38 @@ def run(config: AppConfig) -> list[Path]:
     for input_path in discover_inputs(config.input_dir)[: config.max_files_per_run]:
         outputs.append(process_one(input_path, config))
     return outputs
+
+
+def preflight_check(config: AppConfig) -> None:
+    """Fail fast for fatal configuration/input problems before long generation runs."""
+    errors: list[str] = []
+    if config.use_ai and not os.environ.get("OPENAI_API_KEY"):
+        errors.append("OPENAI_API_KEY が設定されていません。")
+    if config.use_ai and importlib.util.find_spec("openai") is None:
+        errors.append("Python依存関係 openai がインストールされていません。`python -m pip install -e .[ai]` を実行してください。")
+    if importlib.util.find_spec("PIL") is None:
+        errors.append("Python依存関係 Pillow がインストールされていません。")
+    if (config.use_ai or config.generate_assets_only) and not config.model:
+        errors.append("使用するOpenAI model名が設定されていません。")
+    if (config.generate_images or config.generate_images_only) and not config.image_model:
+        errors.append("使用するOpenAI画像model名が設定されていません。")
+    try:
+        parse_image_scenes(config.image_scenes)
+    except Exception as exc:
+        errors.append(f"image_scenes指定が不正です（1〜20の範囲で指定してください）: {exc}")
+    try:
+        probe = config.output_dir / ".write_test"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink(missing_ok=True)
+    except Exception as exc:
+        errors.append(f"outputディレクトリに書き込みできません: {exc}")
+    if not config.generate_images_only and _has_flat_today_input(config):
+        selection = select_flat_inputs(config.input_dir, run_date=config.target_date)
+        if selection.current_source and status_for(selection.current_book_covers) != "OK":
+            errors.append("表紙画像が存在しません。")
+        if selection.current_source and status_for(selection.related_book_covers) != "OK":
+            errors.append("参照画像ファイルなし: 関連本カバーが存在しません。")
+    if errors:
+        config.error_dir.mkdir(parents=True, exist_ok=True)
+        (config.error_dir / "error_report.md").write_text("# preflight error\n\n" + "\n".join(f"- {error}" for error in errors) + "\n", encoding="utf-8")
+        raise RuntimeError("preflight check failed:\n" + "\n".join(f"- {error}" for error in errors))
