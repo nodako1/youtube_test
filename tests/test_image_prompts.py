@@ -401,3 +401,24 @@ def test_scene_19_target_uses_current_and_related_cover_references(tmp_path: Pat
 
     assert targets[0].references == (current, related)
     assert "Use the reference image as the current book cover" in targets[0].prompt
+
+
+def test_scene_18_prompt_extracts_practice_structure_from_current_script():
+    assets = generate_fallback_assets("本のメモ", "テスト本")
+    scene_18 = json.loads(assets.image_prompts)[17]
+
+    assert scene_18["fixed_role"] == "本の学びを仕事や日常に落とし込む実践シーン"
+    assert scene_18["practice_theme_label"]
+    assert scene_18["application_context"] in {"work", "daily_life", "both"}
+    assert scene_18["practice_action_label"]
+    assert scene_18["viewer_takeaway_label"]
+    assert scene_18["practice_type"] in {"planning", "communication", "habit_building", "reflection", "task_execution", "emotional_control", "decision_making"}
+    assert scene_18["visual_structure"] in {"desk_focus", "morning_planning", "checklist_flow", "calm_action_scene", "notebook_and_tasks", "work_life_bridge"}
+    assert scene_18["supporting_objects"]
+    assert len(scene_18["exact_text_elements"]) == 1
+    assert len(scene_18["exact_text_elements"][0]) <= 15
+    assert "Practice theme:" in scene_18["final_prompt"]
+    assert "Practice type:" in scene_18["final_prompt"]
+    assert "Visual structure:" in scene_18["final_prompt"]
+    assert "It must not become a generic office scene or a simple desk-working image" in scene_18["final_prompt"]
+    assert "avoid turning the image into a closing or recap scene" in scene_18["final_prompt"]

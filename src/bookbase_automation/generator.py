@@ -1518,6 +1518,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
     scene_15_prompt = _scene_15_structured_prompt(context) if scene == 15 else None
     scene_16_prompt = _scene_16_structured_prompt(context) if scene == 16 else None
     scene_17_prompt = _scene_17_structured_prompt(context) if scene == 17 else None
+    scene_18_prompt = _scene_18_structured_prompt(context) if scene == 18 else None
     scene_19_prompt = _scene_19_structured_prompt(context) if scene == 19 else None
     meta = _image_block_metadata(scene)
     composition_by_point = {
@@ -1640,6 +1641,12 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         differentiation = "scene_04のこれから話す予告構図ではなく、3ポイントを学び終えた後の総整理・到達感のある流れ構図へ変える。scene_20の締め挨拶とも混ぜない"
         prompt = str(scene_17_prompt["final_prompt"])
         recommended_composition = str(scene_17_prompt["composition"])
+    elif scene_18_prompt:
+        purpose = str(scene_18_prompt["scene_role"])
+        text = " / ".join(scene_18_prompt["exact_text_elements"])
+        differentiation = "scene_17の総整理から、手を動かして本の学びを仕事や日常へ移す実践途中の構図へ変える。scene_20の締めの余韻とも混ぜない"
+        prompt = str(scene_18_prompt["final_prompt"])
+        recommended_composition = str(scene_18_prompt["composition"])
     elif scene_19_prompt:
         purpose = str(scene_19_prompt["scene_role"])
         text = " / ".join(scene_19_prompt["exact_text_elements"])
@@ -1655,7 +1662,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
             f"scene {scene}, {meta['所属ブロック']}, {meta['ブロック内での役割']}, "
             f"{recommended_composition}, no long text, one clear message, avoid repeating adjacent composition"
         )
-    structured_prompt = scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt or scene_08_prompt or scene_09_prompt or scene_10_prompt or scene_11_prompt or scene_12_prompt or scene_13_prompt or scene_14_prompt or scene_15_prompt or scene_16_prompt or scene_17_prompt or scene_19_prompt
+    structured_prompt = scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt or scene_08_prompt or scene_09_prompt or scene_10_prompt or scene_11_prompt or scene_12_prompt or scene_13_prompt or scene_14_prompt or scene_15_prompt or scene_16_prompt or scene_17_prompt or scene_18_prompt or scene_19_prompt
     return {
         "シーン番号": scene,
         "所属ブロック": meta["所属ブロック"],
@@ -1671,7 +1678,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         "使用画像": used_image,
         "入力画像チェック": asset_note,
         "needs_review": bool((scene == 3 and used_image == "なし") or (asset_check and asset_check.status == "MISSING" and scene in {19}) or scene in {11, 15}),
-        "最終プロンプト": prompt + (f", reference image: {used_image}, asset note: {asset_note}" if scene not in {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19} else ""),
+        "最終プロンプト": prompt + (f", reference image: {used_image}, asset note: {asset_note}" if scene not in {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19} else ""),
         "scene": scene,
         "prompt": prompt,
         "scene_role": structured_prompt["scene_role"] if structured_prompt else meta["ブロック内での役割"],
@@ -1697,10 +1704,140 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         **({"fixed_role": scene_15_prompt["fixed_role"], "point_3_label": scene_15_prompt["point_3_label"], "scene_15_core_message": scene_15_prompt["scene_15_core_message"], "quote_source_type": scene_15_prompt["quote_source_type"], "quote_source_name": scene_15_prompt["quote_source_name"], "quote_excerpt_label": scene_15_prompt["quote_excerpt_label"], "lesson_label": scene_15_prompt["lesson_label"], "attribution_status": scene_15_prompt["attribution_status"], "visual_mode": scene_15_prompt["visual_mode"]} if scene_15_prompt else {}),
         **({"fixed_role": scene_16_prompt["fixed_role"], "book_title": scene_16_prompt["book_title"], "book_cover_path": scene_16_prompt["book_cover_path"], "remaining_value_label": scene_16_prompt["remaining_value_label"], "read_invitation_label": scene_16_prompt["read_invitation_label"], "visual_mode": scene_16_prompt["visual_mode"], "post_process": scene_16_prompt["post_process"]} if scene_16_prompt else {}),
         **({"fixed_role": scene_17_prompt["fixed_role"], "point_1_label": scene_17_prompt["point_1_label"], "point_2_label": scene_17_prompt["point_2_label"], "point_3_label": scene_17_prompt["point_3_label"], "overall_takeaway_label": scene_17_prompt["overall_takeaway_label"], "point_relationship": scene_17_prompt["point_relationship"], "visual_structure": scene_17_prompt["visual_structure"]} if scene_17_prompt else {}),
+        **({"fixed_role": scene_18_prompt["fixed_role"], "practice_theme_label": scene_18_prompt["practice_theme_label"], "application_context": scene_18_prompt["application_context"], "practice_action_label": scene_18_prompt["practice_action_label"], "viewer_takeaway_label": scene_18_prompt["viewer_takeaway_label"], "practice_type": scene_18_prompt["practice_type"], "visual_structure": scene_18_prompt["visual_structure"], "supporting_objects": scene_18_prompt["supporting_objects"]} if scene_18_prompt else {}),
         **({"fixed_role": scene_19_prompt["fixed_role"], "current_book_label": scene_19_prompt["current_book_label"], "related_book_label": scene_19_prompt["related_book_label"], "connection_reason": scene_19_prompt["connection_reason"], "connection_message": scene_19_prompt["connection_message"], "connection_type": scene_19_prompt["connection_type"], "visual_structure": scene_19_prompt["visual_structure"], "reference_image_path": scene_19_prompt["reference_image_path"], "related_book_cover_path": scene_19_prompt["related_book_cover_path"]} if scene_19_prompt else {}),
     }
 
 
+
+
+def _scene_18_application_context(scene18_body: str) -> str:
+    if re.search(r"仕事|職場|会議|上司|部下|資料|タスク|納期|評価|実務|報連相", scene18_body):
+        if re.search(r"日常|生活|家庭|朝|毎日|習慣|暮らし", scene18_body):
+            return "both"
+        return "work"
+    if re.search(r"日常|生活|家庭|朝|毎日|習慣|暮らし", scene18_body):
+        return "daily_life"
+    return "both"
+
+
+def _scene_18_practice_type(scene18_body: str) -> str:
+    patterns = [
+        ("communication", r"伝え|言い換|話|聞く|相手|会話|相談|説明|コミュニケーション"),
+        ("emotional_control", r"不安|怒り|焦り|ストレス|落ち着|気持ち|余裕|リセット"),
+        ("decision_making", r"判断|選ぶ|迷い|基準|決め|意思決定"),
+        ("habit_building", r"習慣|毎日|続け|積み重ね|小さく|継続"),
+        ("reflection", r"振り返|見直|内省|気づき|書き出|次に活か"),
+        ("task_execution", r"タスク|着手|進め|実務|作業|行動へ|実行"),
+        ("planning", r"計画|整理|優先順位|予定|明日|今日|準備"),
+    ]
+    for practice_type, pattern in patterns:
+        if re.search(pattern, scene18_body):
+            return practice_type
+    return "planning"
+
+
+def _scene_18_visual_structure(practice_type: str, application_context: str) -> str:
+    if application_context == "both":
+        return "work_life_bridge"
+    return {
+        "planning": "morning_planning",
+        "communication": "calm_action_scene",
+        "habit_building": "checklist_flow",
+        "reflection": "notebook_and_tasks",
+        "task_execution": "desk_focus",
+        "emotional_control": "calm_action_scene",
+        "decision_making": "notebook_and_tasks",
+    }.get(practice_type, "desk_focus")
+
+
+def _scene_18_composition(visual_structure: str) -> str:
+    mapping = {
+        "desk_focus": "構図A：朝のやわらかい光が入る整理されたデスクを斜め上から見せ、ノート・手帳・タスクカードに手を伸ばして本の学びを今日の行動へ移している瞬間を描く。ただPCに向かうだけにしない。",
+        "morning_planning": "構図A：窓際の朝の光の中で、人物が手帳と小さなチェックリストを整え、今日試す行動を一つ選んでいる。前向きな開始感を出し、締めの余韻にはしない。",
+        "checklist_flow": "構図C：左の学びメモから右の小さなタスクカードへ、短いカードの流れで行動化を見せる。手元がチェックを入れる途中で、scene_17のまとめ図解にはしない。",
+        "calm_action_scene": "構図B：人物の顔を大きく出さず、ノートに一つ書く手元や付箋を貼る所作を主役にする。静かに実践している途中の空気を出し、読後の締め画像にしない。",
+        "notebook_and_tasks": "構図B：開いたノート、手帳、付箋、タスクカードを中心に、学びを一つの具体行動へ変える整理された手元を描く。文字量を増やさずビジュアルで実用感を伝える。",
+        "work_life_bridge": "構図D：整理された仕事机に、手帳・生活用の小物・朝の飲み物を控えめに置き、仕事と日常の両方で小さく試せる橋渡しを描く。広告風や締めの余韻にはしない。",
+    }
+    return mapping.get(visual_structure, mapping["desk_focus"])
+
+
+def _scene_18_supporting_objects(practice_type: str, visual_structure: str) -> list[str]:
+    base = ["ノート", "手帳", "付箋"]
+    by_type = {
+        "planning": ["チェックリスト", "予定カード", "小さなカレンダー"],
+        "communication": ["会話メモ", "言い換えカード", "ペン"],
+        "habit_building": ["習慣トラッカー", "小さなチェックカード", "朝の飲み物"],
+        "reflection": ["振り返りノート", "ペン", "小さな時計"],
+        "task_execution": ["タスクカード", "優先順位メモ", "ペン"],
+        "emotional_control": ["深呼吸メモ", "余白のある手帳", "温かい飲み物"],
+        "decision_making": ["判断基準カード", "選択肢メモ", "ペン"],
+    }
+    objects = base + by_type.get(practice_type, ["チェックリスト", "タスクカード"])
+    if visual_structure == "work_life_bridge":
+        objects.append("日常につながる小さな小物")
+    return list(dict.fromkeys(objects))[:7]
+
+
+def _scene_18_structured_prompt(context: dict[str, object]) -> dict[str, object]:
+    scene_bodies = context.get("scene_bodies", {})
+    scene18_body = str(scene_bodies.get("scene_18", "")) if isinstance(scene_bodies, dict) else ""
+    points = context.get("three_key_points", [])
+    point_labels = " ".join(str(point.get("label", "")) for point in points if isinstance(point, dict))
+    extraction_source = f"{scene18_body} {point_labels} {context.get('current_theme', '')}"
+    practice_theme_label = _short_label(extraction_source, "学びを実践する", 12)
+    application_context = _scene_18_application_context(scene18_body or extraction_source)
+    practice_action_label = _short_label(scene18_body, "小さく行動する", 12)
+    viewer_takeaway_label = _short_label(scene18_body, "今日から実践", 12)
+    practice_type = _scene_18_practice_type(scene18_body or extraction_source)
+    visual_structure = _scene_18_visual_structure(practice_type, application_context)
+    supporting_objects = _scene_18_supporting_objects(practice_type, visual_structure)
+    composition = _scene_18_composition(visual_structure)
+    practice_text = viewer_takeaway_label if 4 <= len(viewer_takeaway_label) <= 15 else "今日から実践"
+    elements = [practice_text]
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+
+This is Scene 18. Its fixed role is to show how the learning from the book can be applied in work or daily life. The image should help viewers imagine putting the ideas into action. It must not become a generic office scene or a simple desk-working image.
+
+Practice theme:
+{practice_theme_label}
+
+Application context:
+{application_context}
+
+Practice action:
+{practice_action_label}
+
+Viewer takeaway:
+{viewer_takeaway_label}
+
+Practice type:
+{practice_type}
+
+Visual structure:
+{visual_structure}
+
+Supporting objects:
+{', '.join(supporting_objects)}
+
+{TEXT_LOCK_INSTRUCTION}:
+{_text_block(elements)}
+
+Composition:
+{composition}
+
+Visual motifs:
+- organized desk
+- notebook, planner, checklist, sticky notes, or task cards
+- soft morning light
+- hopeful and focused atmosphere
+- calm structured whitespace
+- premium watercolor texture
+- gentle teal and subtle gold accents
+
+Keep the image clean and easy to understand at a glance. Use minimal Japanese text only. Do not place long script text. Avoid clutter, avoid English text, avoid generic office stock-image feeling, avoid broken Japanese text, and avoid turning the image into a closing or recap scene."""
+    return {"scene": 18, "fixed_role": "本の学びを仕事や日常に落とし込む実践シーン", "scene_role": "本の学びを仕事や日常に落とし込む実践シーン", "practice_theme_label": practice_theme_label, "application_context": application_context, "practice_action_label": practice_action_label, "viewer_takeaway_label": viewer_takeaway_label, "practice_type": practice_type, "visual_structure": visual_structure, "supporting_objects": supporting_objects, "exact_text_elements": elements, "composition": composition, "visual_motifs": ["organized desk", "notebook, planner, checklist, sticky notes, or task cards", "soft morning light", "hopeful and focused atmosphere", "calm structured whitespace", "premium watercolor texture", "gentle teal and subtle gold accents"], "style": _COMMON_STYLE_FOR_SCHEMA, "negative_rules": ["ただPCに向かっているだけにしない", "汎用オフィス画像にしない", "scene_17のまとめ図にしない", "scene_20の締め画像にしない", "英語テキストを入れない", "長文やCTAを入れない"], "variation_key": f"scene-18-practice-{practice_type}-{visual_structure}", "core_message": viewer_takeaway_label, "final_prompt": final_prompt}
 
 def _scene_17_point_relationship(point_labels: list[str], scene17_body: str) -> str:
     combined = " ".join(point_labels + [scene17_body])

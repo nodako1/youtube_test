@@ -305,3 +305,17 @@ def test_image_quality_report_includes_scene_17_checks():
     assert "3ポイントが順番のある流れとして見える：OK" in report
     assert "point_1_label / point_2_label / point_3_label が原稿から生成されている：OK" in report
     assert "generic three-card image になっていない：OK" in report
+
+
+def test_image_quality_report_includes_scene_18_checks():
+    from bookbase_automation.image_generation import build_image_quality_report
+
+    report = build_image_quality_report([])
+
+    assert "## 【scene_18 画像品質チェック】" in report
+    assert "scene_18固定役割に合っている：OK" in report
+    assert "practice_theme_label が定義されている：OK" in report
+    assert "practice_type が設定されている：OK" in report
+    assert "visual_structure が設定されている：OK" in report
+    assert "scene_17の総まとめ画像と役割が混ざっていない：OK" in report
+    assert "generic office image になっていない：OK" in report
