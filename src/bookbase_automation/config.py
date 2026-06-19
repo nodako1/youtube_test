@@ -19,7 +19,10 @@ class AppConfig:
     model: str = "gpt-4.1-mini"
     generate_images: bool = False
     image_scene03_only: bool = False
-    image_model: str = "gpt-image-1"
+    image_model: str = "gpt-image-2"
+    image_scenes: str = "1-20"
+    force_images: bool = False
+    dry_run_images: bool = False
 
     @classmethod
     def from_root(
@@ -32,7 +35,10 @@ class AppConfig:
         model: str = "gpt-4.1-mini",
         generate_images: bool = False,
         image_scene03_only: bool = False,
-        image_model: str = "gpt-image-1",
+        image_model: str = "gpt-image-2",
+        image_scenes: str = "1-20",
+        force_images: bool = False,
+        dry_run_images: bool = False,
     ) -> "AppConfig":
         root = root.resolve()
         return cls(
@@ -50,6 +56,9 @@ class AppConfig:
             generate_images=generate_images,
             image_scene03_only=image_scene03_only,
             image_model=image_model,
+            image_scenes=image_scenes,
+            force_images=force_images,
+            dry_run_images=dry_run_images,
         )
 
     def ensure_directories(self) -> None:

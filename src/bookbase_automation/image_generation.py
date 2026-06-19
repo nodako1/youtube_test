@@ -5,6 +5,7 @@ import io
 import json
 import os
 from dataclasses import dataclass
+from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +37,14 @@ class ImageResult:
     prompt: str
     references: tuple[str, ...]
     error: str = ""
+    output_path: str = ""
+    exists_ok: bool = False
+    image_size: tuple[int, int] | None = None
+    aspect_ratio_ok: bool = False
+    api_generated: bool = False
+    common_rules_applied: bool = False
+    scene_rules_applied: bool = False
+    text_constraints_ok: bool = False
 
 
 def _common_style() -> str:
@@ -111,14 +120,36 @@ def parse_scene_prompts(image_prompts: str) -> dict[int, str]:
     return prompts
 
 
-def build_image_targets(out_dir: Path, image_prompts: str, selection: FlatInputSelection, *, scene03_only: bool = False) -> list[ImageTarget]:
+def parse_image_scenes(value: str | None) -> list[int]:
+    if not value:
+        return list(range(1, 21))
+    scenes: set[int] = set()
+    for part in value.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            start_text, end_text = part.split("-", 1)
+            start, end = int(start_text), int(end_text)
+            if start > end:
+                raise ValueError(f"Invalid image scene range: {part}")
+            scenes.update(range(start, end + 1))
+        else:
+            scenes.add(int(part))
+    invalid = [scene for scene in scenes if scene < 1 or scene > 20]
+    if invalid:
+        raise ValueError(f"Invalid image scene number(s): {invalid}; use 1-20")
+    return sorted(scenes)
+
+
+def build_image_targets(out_dir: Path, image_prompts: str, selection: FlatInputSelection, *, scene03_only: bool = False, scenes: list[int] | None = None, include_thumbnails: bool = True) -> list[ImageTarget]:
     scene_prompts = parse_scene_prompts(image_prompts)
     targets: list[ImageTarget] = []
-    scenes = [3] if scene03_only else list(range(1, 21))
-    for scene in scenes:
+    selected_scenes = [3] if scene03_only else (scenes or list(range(1, 21)))
+    for scene in selected_scenes:
         prompt, refs = _scene_prompt(scene, scene_prompts.get(scene, "Book Base scene visual"), selection)
         targets.append(ImageTarget(f"scene_{scene:02d}", SCENE_FILENAMES[scene], out_dir / "images", prompt, refs, scene))
-    if not scene03_only:
+    if include_thumbnails and not scene03_only:
         for key, filename in THUMBNAIL_TARGETS.items():
             prompt, refs = _thumbnail_prompt(key, selection)
             targets.append(ImageTarget(key, filename, out_dir / "thumbnails", prompt, refs, None))
@@ -143,16 +174,16 @@ def _extract_b64(response: Any) -> str:
     raise RuntimeError("画像APIレスポンスにb64_jsonがありません。")
 
 
-def _generate_one(client: Any, target: ImageTarget, *, model: str, size: str) -> bytes:
+def _generate_one(client: Any, target: ImageTarget, *, model: str, size: str, quality: str, output_format: str) -> bytes:
     if target.references:
         images = [open(path, "rb") for path in target.references]
         try:
-            response = client.images.edit(model=model, image=images if len(images) > 1 else images[0], prompt=target.prompt, size=size, n=1)
+            response = client.images.edit(model=model, image=images if len(images) > 1 else images[0], prompt=target.prompt, size=size, quality=quality, output_format=output_format, n=1)
         finally:
             for image in images:
                 image.close()
     else:
-        response = client.images.generate(model=model, prompt=target.prompt, size=size, n=1)
+        response = client.images.generate(model=model, prompt=target.prompt, size=size, quality=quality, output_format=output_format, n=1)
     return base64.b64decode(_extract_b64(response))
 
 
@@ -212,38 +243,58 @@ def composite_scene16_book_cover(background_bytes: bytes, cover_path: Path) -> b
     """Composite the real Scene 16 book cover subtly, smaller than Scene 03."""
     return composite_scene03_book_cover(background_bytes, cover_path, cover_width_ratio=0.20, x_ratio=0.68)
 
-def generate_images(targets: list[ImageTarget], *, model: str = "gpt-image-1", size: str = "1536x1024") -> list[ImageResult]:
-    from openai import OpenAI
+def validate_png_16_9(path: Path) -> tuple[bool, tuple[int, int] | None, bool, str]:
+    if not path.exists():
+        return False, None, False, "画像ファイルが存在しません。"
+    try:
+        from PIL import Image
+        with Image.open(path) as image:
+            width, height = image.size
+        ratio_ok = Fraction(width, height) == Fraction(16, 9)
+        return True, (width, height), ratio_ok, ""
+    except Exception as exc:
+        return True, None, False, str(exc)
 
+
+def generate_images(targets: list[ImageTarget], *, model: str = "gpt-image-2", size: str = "1536x864", quality: str = "high", output_format: str = "png", force: bool = False) -> list[ImageResult]:
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY が設定されていません。")
+    from openai import OpenAI
+
     client = OpenAI(api_key=api_key)
     results: list[ImageResult] = []
     for target in targets:
         target.output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = target.output_dir / target.filename
         try:
+            if output_path.exists() and not force:
+                exists_ok, image_size, ratio_ok, validation_error = validate_png_16_9(output_path)
+                results.append(ImageResult(target.key, target.filename, "SKIPPED", target.prompt, tuple(str(p) for p in target.references), validation_error, str(output_path), exists_ok, image_size, ratio_ok, False, True, target.scene is not None, "Use only the following Japanese text elements exactly as written" in target.prompt or "minimal concise Japanese text" in target.prompt))
+                continue
             if target.scene == 3:
                 cover_path = target.references[0] if target.references else None
                 if cover_path is None or not cover_path.exists():
-                    results.append(ImageResult(target.key, target.filename, "NEEDS_REVIEW", target.prompt, tuple(str(p) for p in target.references), "今回の本のブックカバーが見つかりません"))
+                    results.append(ImageResult(target.key, target.filename, "NEEDS_REVIEW", target.prompt, tuple(str(p) for p in target.references), "今回の本のブックカバーが見つかりません", str(output_path), False, None, False, False, True, target.scene is not None, False))
                     continue
             generation_target = ImageTarget(target.key, target.filename, target.output_dir, target.prompt, (), target.scene) if target.scene in {3, 16} else target
-            image_bytes = _generate_one(client, generation_target, model=model, size=size)
+            image_bytes = _generate_one(client, generation_target, model=model, size=size, quality=quality, output_format=output_format)
             if target.scene == 3:
                 assert cover_path is not None
                 image_bytes = composite_scene03_book_cover(image_bytes, cover_path)
             if target.scene == 16 and target.references:
                 image_bytes = composite_scene16_book_cover(image_bytes, target.references[0])
-            (target.output_dir / target.filename).write_bytes(image_bytes)
-            results.append(ImageResult(target.key, target.filename, "OK", target.prompt, tuple(str(p) for p in target.references)))
+            output_path.write_bytes(image_bytes)
+            exists_ok, image_size, ratio_ok, validation_error = validate_png_16_9(output_path)
+            status = "OK" if exists_ok and ratio_ok else "FAILED"
+            results.append(ImageResult(target.key, target.filename, status, target.prompt, tuple(str(p) for p in target.references), validation_error, str(output_path), exists_ok, image_size, ratio_ok, True, True, target.scene is not None, "Use only the following Japanese text elements exactly as written" in target.prompt or "minimal concise Japanese text" in target.prompt))
         except Exception as exc:  # keep processing other images
-            results.append(ImageResult(target.key, target.filename, "FAILED", target.prompt, tuple(str(p) for p in target.references), str(exc)))
+            results.append(ImageResult(target.key, target.filename, "FAILED", target.prompt, tuple(str(p) for p in target.references), str(exc), str(output_path), False, None, False, False, True, target.scene is not None, False))
     return results
 
 
 def render_failed_images(results: list[ImageResult]) -> str:
-    failed = [result for result in results if result.status != "OK"]
+    failed = [result for result in results if result.status not in {"OK", "SKIPPED"}]
     lines = ["# failed_images.md", ""]
     if not failed:
         return "# failed_images.md\n\n失敗画像はありません。\n"
@@ -264,14 +315,33 @@ def render_failed_images(results: list[ImageResult]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool = False) -> str:
+def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool = False, scenes: list[int] | None = None, model: str = "gpt-image-2", size: str = "1536x864", quality: str = "high") -> str:
     by_key = {result.key: result.status for result in results}
     by_result = {result.key: result for result in results}
     lines = ["", "## 【画像生成チェック】", ""]
-    scenes = [3] if scene03_only else list(range(1, 21))
-    for scene in scenes:
+    selected_scenes = [3] if scene03_only else (scenes or list(range(1, 21)))
+    for scene in selected_scenes:
         key = f"scene_{scene:02d}"
+        result = by_result.get(key)
         lines.append(f"- {key}：{by_key.get(key, 'NEEDS_REVIEW')}")
+        if result is not None:
+            width_height = f"{result.image_size[0]} x {result.image_size[1]}" if result.image_size else "未確認"
+            lines.extend([
+                "",
+                f"scene番号：{key}",
+                f"API生成：{'OK' if result.api_generated or result.status == 'SKIPPED' else 'NG'}",
+                f"出力パス：{result.output_path or '未生成'}",
+                f"画像存在確認：{'OK' if result.exists_ok else 'NG'}",
+                f"画像サイズ：{width_height}",
+                f"16:9確認：{'OK' if result.aspect_ratio_ok else 'NG'}",
+                f"使用モデル：{model}",
+                f"使用サイズ：{size}",
+                f"使用品質：{quality}",
+                f"Book Base共通ルール適用：{'OK' if result.common_rules_applied else 'NG'}",
+                f"scene専用ルール適用：{'OK' if result.scene_rules_applied else 'NG'}",
+                f"画像内テキスト制約：{'OK' if result.text_constraints_ok else 'NG'}",
+                f"エラー内容：{result.error or 'なし'}",
+            ])
     if not scene03_only:
         for key in THUMBNAIL_TARGETS:
             lines.append(f"- {key}：{by_key.get(key, 'NEEDS_REVIEW')}")

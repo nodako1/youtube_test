@@ -7,7 +7,7 @@ from .assets import AssetCheck, build_asset_report, check_input_assets
 from .config import AppConfig
 from .fs_utils import move_file, move_path, output_folder_name, slugify
 from .generator import AIResponseJSONParseError, AIResponseValidationError, generate_ai_assets, generate_fallback_assets
-from .image_generation import build_image_quality_report, build_image_targets, generate_images, render_failed_images, render_prompts_markdown
+from .image_generation import build_image_quality_report, build_image_targets, generate_images, parse_image_scenes, render_failed_images, render_prompts_markdown
 from .input_assets import build_flat_input_report, derive_book_slug, read_rtfd_zip_text, select_flat_inputs, status_for
 from .metadata import build_metadata_quality_report
 from .quality import build_quality_report
@@ -191,14 +191,21 @@ def process_flat_inputs(config: AppConfig) -> Path:
             assets = generate_fallback_assets(source_text, book_slug, _flat_asset_checks(selection))
         else:
             raise RuntimeError("AI生成が無効です。本番実行では--use-aiを指定してください。動作確認のみ--allow-fallbackを使用できます。")
-        targets = build_image_targets(out_dir, assets.image_prompts, selection, scene03_only=config.image_scene03_only)
+        selected_scenes = parse_image_scenes(config.image_scenes)
+        targets = build_image_targets(out_dir, assets.image_prompts, selection, scene03_only=config.image_scene03_only, scenes=selected_scenes, include_thumbnails=False)
         (out_dir / "image_prompts.md").write_text(render_prompts_markdown(targets), encoding="utf-8")
-        image_report = build_image_quality_report([], scene03_only=config.image_scene03_only)
+        image_report = build_image_quality_report([], scene03_only=config.image_scene03_only, scenes=selected_scenes, model=config.image_model)
         failed = "# failed_images.md\n\n画像生成は未実行です。--generate-images を指定するとOpenAI APIで生成します。\n"
-        if config.generate_images:
-            results = generate_images(targets, model=config.image_model)
+        if config.dry_run_images:
+            print(render_prompts_markdown(targets))
+            failed = "# failed_images.md\n\n画像生成はdry-runのため未実行です。\n"
+        elif config.generate_images:
+            results = generate_images(targets, model=config.image_model, force=config.force_images)
             failed = render_failed_images(results)
-            image_report = build_image_quality_report(results, scene03_only=config.image_scene03_only)
+            image_report = build_image_quality_report(results, scene03_only=config.image_scene03_only, scenes=selected_scenes, model=config.image_model)
+            failed_scenes = [result.key for result in results if result.status not in {"OK", "SKIPPED"}]
+            if failed_scenes:
+                print(f"画像生成に失敗または要確認のsceneがあります: {', '.join(failed_scenes)}")
         (out_dir / "failed_images.md").write_text(failed, encoding="utf-8")
         _write_flat_outputs(out_dir, source_text, assets)
         report = build_quality_report(assets.script, assets.titles, assets.image_prompts, assets.description, source_text)
