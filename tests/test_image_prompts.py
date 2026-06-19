@@ -161,3 +161,37 @@ def test_scene_06_fallback_prompt_explains_key_point_1_mechanism():
     assert "Do not create a generic business person image" in scene_06["final_prompt"]
     assert "avoid generic emotional icons" in scene_06["final_prompt"]
     assert "Watercolor illustration of a business person with emotional expression icons" not in scene_06["final_prompt"]
+
+
+def test_scene_07_fallback_prompt_reinforces_key_point_1_with_variable_evidence():
+    assets = generate_fallback_assets("本のメモ", "否定しない言い換え事典")
+    prompts = json.loads(assets.image_prompts)
+    scene_07 = prompts[6]
+
+    assert scene_07["scene"] == 7
+    assert scene_07["fixed_role"] == "重要ポイント①の根拠補強"
+    assert scene_07["point_1_label"]
+    assert scene_07["scene_07_core_message"]
+    assert scene_07["evidence_type"] in {
+        "research",
+        "survey",
+        "public_data",
+        "report",
+        "experiment",
+        "case_data",
+        "book_claim",
+    }
+    assert scene_07["source_confidence"] in {"verified", "needs_review", "unavailable"}
+    assert scene_07["visual_structure"] in {
+        "evidence_card",
+        "data_report",
+        "research_board",
+        "document_review",
+        "chart_focus",
+    }
+    assert len(scene_07["exact_text_elements"]) <= 3
+    assert "Do not hard-code psychology research" in scene_07["final_prompt"]
+    assert "Do not invent specific numbers" in scene_07["final_prompt"]
+    assert "avoid repeating the Scene 06 composition" in scene_07["final_prompt"]
+    assert "psychology research data" not in scene_07["final_prompt"]
+    assert "科学的にも納得" not in assets.script

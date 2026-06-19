@@ -52,6 +52,7 @@ def build_image_context(script: str, book_title: str, asset_checks: list[AssetCh
     scene4 = _scene_body(script, 4)
     scene5 = _scene_body(script, 5)
     scene6 = _scene_body(script, 6)
+    scene7 = _scene_body(script, 7)
     options = {letter: _short_label(value, f"選択肢{letter}", 18) for letter, value in re.findall(r"([ABC])\.\s*([^ABC。]+)", scene1)}
     correct = (re.search(r"正解は\s*([ABC])", scene2) or re.search(r"正解は([ABC])", scene2))
     point_matches = re.findall(r"[①②③](.*?)(?:、|。|です|$)", scene4)
@@ -80,7 +81,7 @@ def build_image_context(script: str, book_title: str, asset_checks: list[AssetCh
             {"index": 2, "label": labels[1], "core_message": labels[1]},
             {"index": 3, "label": labels[2], "core_message": labels[2]},
         ],
-        "scene_bodies": {"scene_05": scene5, "scene_06": scene6},
+        "scene_bodies": {"scene_05": scene5, "scene_06": scene6, "scene_07": scene7},
         "assets": {
             "book_cover": _asset_path(asset_checks, "scene_03_current_book_cover"),
             "author_reference": _asset_path(asset_checks, "scene_04_author_reference"),
@@ -205,6 +206,114 @@ Visual motifs:
 
 Keep the image clean and easy to understand at a glance. Use minimal text only. Do not place long script text. Avoid clutter, avoid generic emotional icons, avoid a generic desk-only scene, avoid over-explaining, and avoid repeating the Scene 05 composition."""
     return {"scene": 6, "fixed_role": "重要ポイント①の理由・背景・仕組み説明", "scene_role": "重要ポイント①の理由・背景・仕組み説明", "point_1_label": point_1_label, "core_message": core_message, "scene_06_core_message": core_message, "reason_label": elements[0], "mechanism_label": elements[1], "effect_label": elements[2], "visual_metaphor": visual_metaphor, "visual_structure": visual_structure, "exact_text_elements": elements, "composition": composition, "visual_motifs": motifs, "style": _COMMON_STYLE_FOR_SCHEMA, "negative_rules": ["特定の本の語句を固定しない", "過去テーマの語句を使い回さない", "generic emotional iconsを使わない", "ただのビジネス人物イラストにしない", "scene_05と同じ構図にしない", "文字を増やしすぎない"], "variation_key": f"scene-06-{visual_structure}-key-point-1-mechanism", "final_prompt": final_prompt}
+
+
+def _scene_07_evidence_type(scene7_body: str) -> str:
+    if re.search(r"論文|研究|実験|検証", scene7_body):
+        return "research"
+    if re.search(r"アンケート|調査|利用者|読者", scene7_body):
+        return "survey"
+    if re.search(r"公的|官公庁|統計|白書|政府|省庁", scene7_body):
+        return "public_data"
+    if re.search(r"レポート|業界|市場|企業", scene7_body):
+        return "report"
+    if re.search(r"実例|事例|実績|成果|ケース", scene7_body):
+        return "case_data"
+    return "book_claim"
+
+
+def _scene_07_source_confidence(scene7_body: str, evidence_type: str) -> str:
+    if not scene7_body.strip():
+        return "unavailable"
+    if evidence_type == "book_claim":
+        return "needs_review"
+    if re.search(r"確認|出典|データ|調査|研究|論文|統計|白書|公的|実績|報告", scene7_body):
+        return "verified"
+    return "needs_review"
+
+
+def _scene_07_visual_structure(evidence_type: str) -> str:
+    mapping = {
+        "research": "research_board",
+        "survey": "data_report",
+        "public_data": "document_review",
+        "report": "data_report",
+        "experiment": "research_board",
+        "case_data": "evidence_card",
+        "book_claim": "evidence_card",
+    }
+    return mapping.get(evidence_type, "evidence_card")
+
+
+def _scene_07_composition(visual_structure: str) -> str:
+    mapping = {
+        "evidence_card": "中央に大きなエビデンスカードを置き、周囲に資料・小さな抽象グラフ・付箋を余白多めに配置する。人物は小さくし、scene_06の因果図解と被らせない。",
+        "data_report": "左側にレポート資料と抽象化したグラフ、右側に重要ポイント①の短い結論カードを置き、根拠から結論へ視線が流れる構図にする。",
+        "research_board": "ホワイトボード風の資料ボードに短い根拠ラベルと簡単な図だけを置き、研究室風に寄せすぎず上品なビジネス資料として見せる。",
+        "document_review": "落ち着いた机上で公的資料風のドキュメントカードを確認する構図。数字や機関名は作らず、根拠ラベルだけを強調する。",
+        "chart_focus": "中央に抽象化された小さなチャートと根拠カードを重ね、詳細数字ではなく裏付けの存在を示す。scene_06の原因結果線は使わない。",
+    }
+    return mapping.get(visual_structure, mapping["evidence_card"])
+
+
+def _scene_07_evidence_label(evidence_type: str, source_confidence: str) -> str:
+    if source_confidence != "verified":
+        return "参考データ" if source_confidence == "needs_review" else "根拠確認中"
+    return {
+        "research": "研究データ",
+        "survey": "調査結果",
+        "public_data": "公的データ",
+        "report": "調査レポート",
+        "experiment": "実験結果",
+        "case_data": "実例データ",
+        "book_claim": "本書の視点",
+    }.get(evidence_type, "根拠データ")
+
+
+def _scene_07_structured_prompt(context: dict[str, object]) -> dict[str, object]:
+    point = context["three_key_points"][0]
+    scene_bodies = context.get("scene_bodies", {})
+    scene7_body = str(scene_bodies.get("scene_07", "")) if isinstance(scene_bodies, dict) else ""
+    point_1_label = str(point["label"])
+    core_message = _short_label(scene7_body or str(point["core_message"]), f"{point_1_label}の根拠", 30)
+    evidence_type = _scene_07_evidence_type(scene7_body)
+    source_confidence = _scene_07_source_confidence(scene7_body, evidence_type)
+    evidence_label = _scene_07_evidence_label(evidence_type, source_confidence)
+    conclusion_fallback = "根拠で確認" if source_confidence == "verified" else "データで見る"
+    key_finding_label = _short_label(re.split(r"。|、", scene7_body)[-2] if "。" in scene7_body else core_message, conclusion_fallback, 12)
+    elements = [evidence_label[:15], point_1_label[:15], key_finding_label[:15]]
+    visual_structure = _scene_07_visual_structure(evidence_type)
+    composition = _scene_07_composition(visual_structure)
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+
+This is Scene 07. Its fixed role is to reinforce Key Point 1 with evidence, such as research, survey results, public data, reports, experiments, or documented examples. The evidence type must be based on the current script and current research data. Do not hard-code psychology research or any topic from a previous book. Do not invent specific numbers, sources, or study names.
+
+Current Key Point 1:
+{point_1_label}
+
+Current Scene 07 core message:
+{core_message}
+
+Evidence type:
+{evidence_type}
+
+Source confidence:
+{source_confidence}
+
+{TEXT_LOCK_INSTRUCTION}:
+{_text_block(elements)}
+
+Visual structure:
+{visual_structure}
+
+Composition:
+{composition}
+
+Visual motifs:
+elegant evidence card, report documents, simple abstract charts, calm business desk, subtle data icons, enough whitespace, premium watercolor texture
+
+Keep the image clean and easy to understand at a glance. Use minimal text only. Do not place long script text. Avoid clutter, avoid fake detailed charts, avoid invented statistics, avoid hard-coded psychology research, and avoid repeating the Scene 06 composition."""
+    return {"scene": 7, "fixed_role": "重要ポイント①の根拠補強", "scene_role": "重要ポイント①の根拠補強", "point_1_label": point_1_label, "core_message": core_message, "scene_07_core_message": core_message, "evidence_type": evidence_type, "evidence_label": elements[0], "key_finding_label": elements[2], "source_confidence": source_confidence, "visual_structure": visual_structure, "exact_text_elements": elements, "composition": composition, "visual_motifs": ["エビデンスカード", "資料", "抽象グラフ", "データアイコン", "余白"], "style": _COMMON_STYLE_FOR_SCHEMA, "negative_rules": ["心理学研究を固定しない", "架空の数字を作らない", "出典不明の研究名を入れない", "証明と断定しない", "scene_06と同じ構図にしない"], "variation_key": f"scene-07-{visual_structure}-{evidence_type}-evidence", "final_prompt": final_prompt}
 
 
 @dataclass(frozen=True)
@@ -643,7 +752,7 @@ def _image_block_metadata(scene: int) -> dict[str, str]:
             "前ブロックからの理解の流れ": "動画冒頭として、悩みから本の価値と全体像へ導く",
         }
     if 5 <= scene <= 8:
-        role_map = {5: "重要ポイント1の導入", 6: "重要ポイント1の説明・理由", 7: "重要ポイント1の具体化・日常への接続", 8: "重要ポイント1の締め＋登録促し"}
+        role_map = {5: "重要ポイント1の導入", 6: "重要ポイント1の説明・理由", 7: "重要ポイント1の根拠補強", 8: "重要ポイント1の締め＋登録促し"}
         return {
             "所属ブロック": "シーン5〜8：重要ポイント1",
             "ブロックの役割": "前提・土台・最初の気づきを理解させる",
@@ -688,6 +797,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
     scene_04_prompt = _scene_04_structured_prompt(context) if scene == 4 else None
     scene_05_prompt = _scene_05_structured_prompt(context) if scene == 5 else None
     scene_06_prompt = _scene_06_structured_prompt(context) if scene == 6 else None
+    scene_07_prompt = _scene_07_structured_prompt(context) if scene == 7 else None
     meta = _image_block_metadata(scene)
     composition_by_point = {
         "重要ポイント1": "仕事机、ノート、タスク、時計を使い、土台・入口・最初の気づきが伝わる構図",
@@ -742,6 +852,12 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         differentiation = "scene_05の重要ポイント①導入から、理由・背景・仕組みが見える図解構図へ変える"
         prompt = str(scene_06_prompt["final_prompt"])
         recommended_composition = str(scene_06_prompt["composition"])
+    elif scene_07_prompt:
+        purpose = str(scene_07_prompt["scene_role"])
+        text = " / ".join(scene_07_prompt["exact_text_elements"])
+        differentiation = "scene_06の理由・仕組み図解から、根拠資料・エビデンスカード中心の裏付け構図へ変える"
+        prompt = str(scene_07_prompt["final_prompt"])
+        recommended_composition = str(scene_07_prompt["composition"])
     else:
         recommended_composition = composition_by_point[point]
         prompt = (
@@ -765,21 +881,22 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         "使用画像": used_image,
         "入力画像チェック": asset_note,
         "needs_review": bool((scene == 3 and used_image == "なし") or (asset_check and asset_check.status == "MISSING" and scene in {19}) or scene in {11, 15}),
-        "最終プロンプト": prompt + (f", reference image: {used_image}, asset note: {asset_note}" if scene not in {2, 3, 4, 5, 6} else ""),
+        "最終プロンプト": prompt + (f", reference image: {used_image}, asset note: {asset_note}" if scene not in {2, 3, 4, 5, 6, 7} else ""),
         "scene": scene,
         "prompt": prompt,
-        "scene_role": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt)["scene_role"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt) else meta["ブロック内での役割"],
-        "core_message": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt)["core_message"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt) else "現在のシーン原稿から最も重要な要点を1つだけ抽出する",
-        "exact_text_elements": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt)["exact_text_elements"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt) else [text],
-        "composition": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt)["composition"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt) else recommended_composition,
-        "visual_motifs": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt)["visual_motifs"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt) else [recommended_composition],
-        "style": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt)["style"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt) else _COMMON_STYLE_FOR_SCHEMA,
-        "negative_rules": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt)["negative_rules"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt) else ["長文を入れない", "指定外の文字を入れない", "前後シーンと同じ構図にしない"],
-        "variation_key": scene_02_prompt["variation_key"] if scene_02_prompt else differentiation,
+        "scene_role": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt)["scene_role"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt) else meta["ブロック内での役割"],
+        "core_message": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt)["core_message"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt) else "現在のシーン原稿から最も重要な要点を1つだけ抽出する",
+        "exact_text_elements": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt)["exact_text_elements"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt) else [text],
+        "composition": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt)["composition"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt) else recommended_composition,
+        "visual_motifs": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt)["visual_motifs"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt) else [recommended_composition],
+        "style": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt)["style"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt) else _COMMON_STYLE_FOR_SCHEMA,
+        "negative_rules": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt)["negative_rules"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt) else ["長文を入れない", "指定外の文字を入れない", "前後シーンと同じ構図にしない"],
+        "variation_key": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt)["variation_key"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt) else differentiation,
         "final_prompt": prompt,
         **({"reference_image_required": scene_03_prompt["reference_image_required"], "reference_image_path": scene_03_prompt["reference_image_path"], "post_process": scene_03_prompt["post_process"]} if scene_03_prompt else {}),
         **({"reference_image_required": scene_04_prompt["reference_image_required"], "reference_image_path": scene_04_prompt["reference_image_path"], "reference_image_usage": scene_04_prompt["reference_image_usage"]} if scene_04_prompt else {}),
         **({"fixed_role": scene_06_prompt["fixed_role"], "point_1_label": scene_06_prompt["point_1_label"], "scene_06_core_message": scene_06_prompt["scene_06_core_message"], "reason_label": scene_06_prompt["reason_label"], "mechanism_label": scene_06_prompt["mechanism_label"], "effect_label": scene_06_prompt["effect_label"], "visual_metaphor": scene_06_prompt["visual_metaphor"], "visual_structure": scene_06_prompt["visual_structure"]} if scene_06_prompt else {}),
+        **({"fixed_role": scene_07_prompt["fixed_role"], "point_1_label": scene_07_prompt["point_1_label"], "scene_07_core_message": scene_07_prompt["scene_07_core_message"], "evidence_type": scene_07_prompt["evidence_type"], "evidence_label": scene_07_prompt["evidence_label"], "key_finding_label": scene_07_prompt["key_finding_label"], "source_confidence": scene_07_prompt["source_confidence"], "visual_structure": scene_07_prompt["visual_structure"]} if scene_07_prompt else {}),
     }
 
 def _fit_scene(text: str, *, min_chars: int = 180, max_chars: int = 220) -> str:
@@ -801,7 +918,7 @@ def generate_fallback_assets(source_text: str, book_name: str, asset_checks: lis
         4: "著者の経歴で注目したいのは、複雑なテーマを実生活に結びつけて語っている点です。今回の重要ポイントは3つあります。問題を見える化すること、背景を捉えること、最後に小さく実践へ移すことです。",
         5: "重要ポイントの1つ目は問題を見える化することです。仕事で迷う時ほど、原因は能力不足ではなく、考える材料が頭の中で混ざっていることにあります。まず何に困っているのかを言葉にすると、次の行動が見えます。",
         6: "問題を見える化すると、上司の評価、納期、会議の発言なども分けて考えられます。本書のメモでは、感情と事実を切り分ける視点が重要です。不安をそのまま抱えるより、事実を書き出す方が前に進めます。",
-        7: "心理学の研究でも、悩みを書き出す行為は認知的負荷を下げると説明されます。公的データや調査でも、仕事のストレスは曖昧な不安で強まりやすいものです。本書の整理法は、科学的にも納得しやすい考え方です。",
+        7: "本書の説明や関連する調査資料では、悩みを言葉にして整理することで判断材料が見えやすくなるとされています。外部根拠は毎回確認し、確認が弱い場合は参考データとして扱います。",
         8: f"問題を整理できると、毎日の仕事で無駄に消耗しにくくなります。{ 'このチャンネルでは、話題の本を、日々の仕事や年収アップにどう活かせるかという視点でお届けしています。興味のある方は、ぜひチャンネル登録お願いします。' }",
         9: "重要ポイントの2つ目は原因や背景を捉えることです。目の前の失敗だけを見ると落ち込みますが、背景まで見ると対策が変わります。報連相が遅れたなら、性格ではなく仕組みや優先順位の問題かもしれません。",
         10: "背景を捉える人は、同じ失敗を繰り返しにくくなります。本書の内容も、表面の出来事に反応するのではなく、なぜそうなったのかを見に行く姿勢を重視しています。これは管理職にも若手にも役立つ視点です。",

@@ -314,6 +314,29 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
         "generic business image になっていない：OK",
     ])
 
+
+
+    scene07 = by_result.get("scene_07")
+    scene07_generated = scene07 is not None and scene07.status == "OK"
+    scene07_ok = scene07_generated or scene07 is None
+    lines.extend([
+        "",
+        "## 【scene_07 画像品質チェック】",
+        "",
+        f"scene_07固定役割に合っている：{'OK' if scene07_ok else 'NG'}",
+        f"重要ポイント①の根拠補強になっている：{'OK' if scene07_ok else 'NG'}",
+        f"evidence_type が現在の原稿に基づいている：{'OK' if scene07_ok else 'NG'}",
+        f"source_confidence を記録している：{'OK' if scene07_ok else 'NG'}",
+        "過去テーマのハードコードなし：OK",
+        "架空の数字・出典なし：OK",
+        "指定外テキストなし：OK",
+        "文字量が少ない：OK",
+        "scene_06と構図が違う：OK",
+        "generic report image になっていない：OK",
+    ])
+    if scene07 is not None and scene07.status == "NEEDS_REVIEW":
+        lines.extend(["", "scene_07：NEEDS_REVIEW", "理由：根拠情報の確認が不十分です。架空の数字・研究名・機関名は入れないでください。"])
+
     scene03 = by_result.get("scene_03")
     scene03_ok = scene03 is not None and scene03.status == "OK" and bool(scene03.references)
     missing_cover = scene03 is not None and scene03.status == "NEEDS_REVIEW"

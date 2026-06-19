@@ -99,3 +99,15 @@ def test_image_quality_report_includes_scene_06_checks():
     assert "scene_06固定役割に合っている：OK" in report
     assert "visual_structure が適切：OK" in report
     assert "generic business image になっていない：OK" in report
+
+
+def test_image_quality_report_includes_scene_07_checks():
+    from bookbase_automation.image_generation import build_image_quality_report
+
+    report = build_image_quality_report([])
+
+    assert "## 【scene_07 画像品質チェック】" in report
+    assert "scene_07固定役割に合っている：OK" in report
+    assert "evidence_type が現在の原稿に基づいている：OK" in report
+    assert "source_confidence を記録している：OK" in report
+    assert "架空の数字・出典なし：OK" in report
