@@ -316,6 +316,58 @@ Keep the image clean and easy to understand at a glance. Use minimal text only. 
     return {"scene": 7, "fixed_role": "重要ポイント①の根拠補強", "scene_role": "重要ポイント①の根拠補強", "point_1_label": point_1_label, "core_message": core_message, "scene_07_core_message": core_message, "evidence_type": evidence_type, "evidence_label": elements[0], "key_finding_label": elements[2], "source_confidence": source_confidence, "visual_structure": visual_structure, "exact_text_elements": elements, "composition": composition, "visual_motifs": ["エビデンスカード", "資料", "抽象グラフ", "データアイコン", "余白"], "style": _COMMON_STYLE_FOR_SCHEMA, "negative_rules": ["心理学研究を固定しない", "架空の数字を作らない", "出典不明の研究名を入れない", "証明と断定しない", "scene_06と同じ構図にしない"], "variation_key": f"scene-07-{visual_structure}-{evidence_type}-evidence", "final_prompt": final_prompt}
 
 
+def _scene_08_composition() -> str:
+    return "中央に上品な登録カードを置き、カードに『チャンネル登録』、下に小さく『本の学びを仕事へ』を配置する。周囲に本、ノート、ペン、しおり、コーヒーを控えめに置き、背景は淡いクリーム色でティールとゴールドのアクセントを使う。scene_07の資料・グラフ・レポート構図とは明確に変える。"
+
+
+def _scene_08_structured_prompt(context: dict[str, object]) -> dict[str, object]:
+    elements = ["チャンネル登録", "本の学びを仕事へ"]
+    composition = _scene_08_composition()
+    visual_motifs = ["登録カード", "本", "ノート", "ペン", "しおり", "柔らかい光"]
+    negative_rules = [
+        "英語テキストを入れない",
+        "赤い派手な登録ボタンにしない",
+        "押し売り感を出さない",
+        "長文CTAを入れない",
+        "scene_07の資料・グラフ構図と被らせない",
+    ]
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+
+This is Scene 08. Its fixed role is a subscription CTA for the Book Base channel. The image should invite viewers to subscribe in an elegant, non-pushy way. It should feel like a calm invitation to keep learning from business books, not a loud advertisement. Book Base delivers popular books from the perspective of applying book insights to work and income growth. Do not include any current book title, author name, Key Point 1 content, Scene 07 evidence data, or book-specific keywords.
+
+{TEXT_LOCK_INSTRUCTION}:
+{_text_block(elements)}
+
+Composition:
+{composition}
+
+Visual motifs:
+- elegant subscription card
+- books or business book motif
+- notebook and pen
+- calm desk setup
+- subtle notification or bookmark icon
+- soft light
+- enough whitespace
+- premium watercolor texture
+
+Keep the image clean and easy to understand at a glance. Use minimal Japanese text only. Do not place long script text. Avoid English text, avoid red flashy subscribe-button design, avoid aggressive advertising, avoid clutter, and avoid repeating the Scene 07 report/data composition."""
+    return {
+        "scene": 8,
+        "fixed_role": "チャンネル登録CTA",
+        "scene_role": "チャンネル登録CTA",
+        "core_message": "Book Baseの学びを継続して受け取るための自然な登録案内",
+        "cta_tone": "elegant_non_pushy",
+        "exact_text_elements": elements,
+        "composition": composition,
+        "visual_motifs": visual_motifs,
+        "style": _COMMON_STYLE_FOR_SCHEMA,
+        "negative_rules": negative_rules,
+        "variation_key": "scene-08-elegant-non-pushy-subscription-card",
+        "final_prompt": final_prompt,
+    }
+
+
 @dataclass(frozen=True)
 class GeneratedAssets:
     script: str
@@ -798,6 +850,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
     scene_05_prompt = _scene_05_structured_prompt(context) if scene == 5 else None
     scene_06_prompt = _scene_06_structured_prompt(context) if scene == 6 else None
     scene_07_prompt = _scene_07_structured_prompt(context) if scene == 7 else None
+    scene_08_prompt = _scene_08_structured_prompt(context) if scene == 8 else None
     meta = _image_block_metadata(scene)
     composition_by_point = {
         "重要ポイント1": "仕事机、ノート、タスク、時計を使い、土台・入口・最初の気づきが伝わる構図",
@@ -858,6 +911,12 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         differentiation = "scene_06の理由・仕組み図解から、根拠資料・エビデンスカード中心の裏付け構図へ変える"
         prompt = str(scene_07_prompt["final_prompt"])
         recommended_composition = str(scene_07_prompt["composition"])
+    elif scene_08_prompt:
+        purpose = str(scene_08_prompt["scene_role"])
+        text = " / ".join(scene_08_prompt["exact_text_elements"])
+        differentiation = "scene_07の資料・グラフ・レポート構図から、上品な登録カード中心のCTA構図へ変える"
+        prompt = str(scene_08_prompt["final_prompt"])
+        recommended_composition = str(scene_08_prompt["composition"])
     else:
         recommended_composition = composition_by_point[point]
         prompt = (
@@ -866,6 +925,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
             f"scene {scene}, {meta['所属ブロック']}, {meta['ブロック内での役割']}, "
             f"{recommended_composition}, no long text, one clear message, avoid repeating adjacent composition"
         )
+    structured_prompt = scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt or scene_08_prompt
     return {
         "シーン番号": scene,
         "所属ブロック": meta["所属ブロック"],
@@ -881,22 +941,23 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         "使用画像": used_image,
         "入力画像チェック": asset_note,
         "needs_review": bool((scene == 3 and used_image == "なし") or (asset_check and asset_check.status == "MISSING" and scene in {19}) or scene in {11, 15}),
-        "最終プロンプト": prompt + (f", reference image: {used_image}, asset note: {asset_note}" if scene not in {2, 3, 4, 5, 6, 7} else ""),
+        "最終プロンプト": prompt + (f", reference image: {used_image}, asset note: {asset_note}" if scene not in {2, 3, 4, 5, 6, 7, 8} else ""),
         "scene": scene,
         "prompt": prompt,
-        "scene_role": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt)["scene_role"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt) else meta["ブロック内での役割"],
-        "core_message": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt)["core_message"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt) else "現在のシーン原稿から最も重要な要点を1つだけ抽出する",
-        "exact_text_elements": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt)["exact_text_elements"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt) else [text],
-        "composition": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt)["composition"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt) else recommended_composition,
-        "visual_motifs": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt)["visual_motifs"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt) else [recommended_composition],
-        "style": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt)["style"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt) else _COMMON_STYLE_FOR_SCHEMA,
-        "negative_rules": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt)["negative_rules"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt) else ["長文を入れない", "指定外の文字を入れない", "前後シーンと同じ構図にしない"],
-        "variation_key": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt)["variation_key"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt) else differentiation,
+        "scene_role": structured_prompt["scene_role"] if structured_prompt else meta["ブロック内での役割"],
+        "core_message": structured_prompt["core_message"] if structured_prompt else "現在のシーン原稿から最も重要な要点を1つだけ抽出する",
+        "exact_text_elements": structured_prompt["exact_text_elements"] if structured_prompt else [text],
+        "composition": structured_prompt["composition"] if structured_prompt else recommended_composition,
+        "visual_motifs": structured_prompt["visual_motifs"] if structured_prompt else [recommended_composition],
+        "style": structured_prompt["style"] if structured_prompt else _COMMON_STYLE_FOR_SCHEMA,
+        "negative_rules": structured_prompt["negative_rules"] if structured_prompt else ["長文を入れない", "指定外の文字を入れない", "前後シーンと同じ構図にしない"],
+        "variation_key": structured_prompt["variation_key"] if structured_prompt else differentiation,
         "final_prompt": prompt,
         **({"reference_image_required": scene_03_prompt["reference_image_required"], "reference_image_path": scene_03_prompt["reference_image_path"], "post_process": scene_03_prompt["post_process"]} if scene_03_prompt else {}),
         **({"reference_image_required": scene_04_prompt["reference_image_required"], "reference_image_path": scene_04_prompt["reference_image_path"], "reference_image_usage": scene_04_prompt["reference_image_usage"]} if scene_04_prompt else {}),
         **({"fixed_role": scene_06_prompt["fixed_role"], "point_1_label": scene_06_prompt["point_1_label"], "scene_06_core_message": scene_06_prompt["scene_06_core_message"], "reason_label": scene_06_prompt["reason_label"], "mechanism_label": scene_06_prompt["mechanism_label"], "effect_label": scene_06_prompt["effect_label"], "visual_metaphor": scene_06_prompt["visual_metaphor"], "visual_structure": scene_06_prompt["visual_structure"]} if scene_06_prompt else {}),
         **({"fixed_role": scene_07_prompt["fixed_role"], "point_1_label": scene_07_prompt["point_1_label"], "scene_07_core_message": scene_07_prompt["scene_07_core_message"], "evidence_type": scene_07_prompt["evidence_type"], "evidence_label": scene_07_prompt["evidence_label"], "key_finding_label": scene_07_prompt["key_finding_label"], "source_confidence": scene_07_prompt["source_confidence"], "visual_structure": scene_07_prompt["visual_structure"]} if scene_07_prompt else {}),
+        **({"fixed_role": scene_08_prompt["fixed_role"], "cta_tone": scene_08_prompt["cta_tone"]} if scene_08_prompt else {}),
     }
 
 def _fit_scene(text: str, *, min_chars: int = 180, max_chars: int = 220) -> str:

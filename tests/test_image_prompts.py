@@ -195,3 +195,22 @@ def test_scene_07_fallback_prompt_reinforces_key_point_1_with_variable_evidence(
     assert "avoid repeating the Scene 06 composition" in scene_07["final_prompt"]
     assert "psychology research data" not in scene_07["final_prompt"]
     assert "科学的にも納得" not in assets.script
+
+
+def test_scene_08_fallback_prompt_uses_elegant_japanese_subscription_cta():
+    assets = generate_fallback_assets("本のメモ", "否定しない言い換え事典")
+    prompts = json.loads(assets.image_prompts)
+    scene_08 = prompts[7]
+
+    assert scene_08["scene"] == 8
+    assert scene_08["fixed_role"] == "チャンネル登録CTA"
+    assert scene_08["core_message"] == "Book Baseの学びを継続して受け取るための自然な登録案内"
+    assert scene_08["cta_tone"] == "elegant_non_pushy"
+    assert scene_08["exact_text_elements"] == ["チャンネル登録", "本の学びを仕事へ"]
+    assert "Use only the following Japanese text elements exactly as written" in scene_08["final_prompt"]
+    assert "Avoid English text" in scene_08["final_prompt"]
+    assert "avoid red flashy subscribe-button design" in scene_08["final_prompt"]
+    assert "avoid repeating the Scene 07 report/data composition" in scene_08["final_prompt"]
+    assert "Continue learning" not in scene_08["final_prompt"]
+    assert "Subscribe" not in scene_08["final_prompt"]
+    assert "否定しない言い換え事典" not in scene_08["final_prompt"]

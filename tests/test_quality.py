@@ -111,3 +111,16 @@ def test_image_quality_report_includes_scene_07_checks():
     assert "evidence_type が現在の原稿に基づいている：OK" in report
     assert "source_confidence を記録している：OK" in report
     assert "架空の数字・出典なし：OK" in report
+
+
+def test_image_quality_report_includes_scene_08_checks():
+    from bookbase_automation.image_generation import build_image_quality_report
+
+    report = build_image_quality_report([])
+
+    assert "## 【scene_08 画像品質チェック】" in report
+    assert "チャンネル登録CTAだと分かる：OK" in report
+    assert "押し売り感がない：OK" in report
+    assert "英語テキストなし：OK" in report
+    assert "赤い派手な登録ボタンになっていない：OK" in report
+    assert "scene_07と構図が違う：OK" in report

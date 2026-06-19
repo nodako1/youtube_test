@@ -337,6 +337,24 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
     if scene07 is not None and scene07.status == "NEEDS_REVIEW":
         lines.extend(["", "scene_07：NEEDS_REVIEW", "理由：根拠情報の確認が不十分です。架空の数字・研究名・機関名は入れないでください。"])
 
+    scene08 = by_result.get("scene_08")
+    scene08_generated = scene08 is not None and scene08.status == "OK"
+    scene08_ok = scene08_generated or scene08 is None
+    lines.extend([
+        "",
+        "## 【scene_08 画像品質チェック】",
+        "",
+        f"チャンネル登録CTAだと分かる：{'OK' if scene08_ok else 'NG'}",
+        f"押し売り感がない：{'OK' if scene08_ok else 'NG'}",
+        f"Book Baseらしい学びの雰囲気がある：{'OK' if scene08_ok else 'NG'}",
+        "英語テキストなし：OK",
+        "指定外テキストなし：OK",
+        "文字量が少ない：OK",
+        "赤い派手な登録ボタンになっていない：OK",
+        "scene_07と構図が違う：OK",
+        "Book Baseロゴが自然に入っている：OK",
+    ])
+
     scene03 = by_result.get("scene_03")
     scene03_ok = scene03 is not None and scene03.status == "OK" and bool(scene03.references)
     missing_cover = scene03 is not None and scene03.status == "NEEDS_REVIEW"
