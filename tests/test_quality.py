@@ -88,3 +88,14 @@ def test_quality_report_detects_weak_and_one_sided_title_hooks():
 
     assert "タイトル前後の【】: NG" in report
     assert "タイトル弱いフックなし: NG" in report
+
+
+def test_image_quality_report_includes_scene_06_checks():
+    from bookbase_automation.image_generation import build_image_quality_report
+
+    report = build_image_quality_report([])
+
+    assert "## 【scene_06 画像品質チェック】" in report
+    assert "scene_06固定役割に合っている：OK" in report
+    assert "visual_structure が適切：OK" in report
+    assert "generic business image になっていない：OK" in report
