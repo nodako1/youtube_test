@@ -220,8 +220,9 @@ def test_image_quality_report_includes_scene_12_checks():
 
     assert "## 【scene_12 画像品質チェック】" in report
     assert "scene_12固定役割に合っている：OK" in report
-    assert "コメントCTAだと分かる：OK" in report
-    assert "experience_label が原稿から生成されている：OK" in report
+    assert "本の学び・要点整理が主役：OK" in report
+    assert "コメントCTAが補助的に小さい：OK" in report
+    assert "コメントCTAが短い1要素まで：OK" in report
     assert "キーワード型コメント促しになっていない：OK" in report
     assert "scene_08と構図が違う：OK" in report
 

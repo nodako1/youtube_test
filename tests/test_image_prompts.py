@@ -265,14 +265,20 @@ def test_scene_12_fallback_prompt_uses_comment_cta_experience_label():
     assert scene_12["fixed_role"] == "コメントCTA"
     assert scene_12["comment_question"]
     assert scene_12["experience_label"]
-    assert scene_12["cta_label"] == "コメントで教えてください"
-    assert scene_12["visual_structure"] in {"comment_card", "speech_bubbles", "viewer_participation", "notebook_comment"}
-    assert scene_12["exact_text_elements"] == ["あなたの経験は？", scene_12["experience_label"], "コメントで教えてください"]
+    assert scene_12["learning_label"]
+    assert scene_12["cta_label"] in {"似た経験はコメントで", "あなたならどうしますか？", "似たことありますか？", "コメントで教えてください"}
+    assert scene_12["visual_structure"] in {"learning_diagram", "concept_map", "notebook_summary", "key_point_card"}
+    assert len(scene_12["exact_text_elements"]) <= 3
+    assert scene_12["exact_text_elements"][-1] == scene_12["cta_label"]
+    assert scene_12["exact_text_elements"] != ["あなたの経験は？", scene_12["experience_label"], "コメントで教えてください"]
     assert "Current comment question:" in scene_12["final_prompt"]
-    assert "Experience label:" in scene_12["final_prompt"]
+    assert "Learning label:" in scene_12["final_prompt"]
+    assert "Comment CTA label:" in scene_12["final_prompt"]
     assert "Use only the following Japanese text elements exactly as written" in scene_12["final_prompt"]
     assert "Avoid English text" in scene_12["final_prompt"]
     assert "avoid keyword-comment prompts" in scene_12["final_prompt"]
+    assert "avoid making the comment CTA the main subject" in scene_12["final_prompt"]
+    assert "avoid the fixed three-part CTA set" in scene_12["final_prompt"]
     assert "avoid repeating the Scene 08 subscription CTA composition" in scene_12["final_prompt"]
     assert "Similar experience?" not in scene_12["final_prompt"]
     assert "Subscribe" not in scene_12["final_prompt"]
