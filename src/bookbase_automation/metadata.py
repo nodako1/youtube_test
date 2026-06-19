@@ -66,6 +66,17 @@ def build_metadata_quality_report(metadata: str) -> str:
     title_hooks_ok = len(title_lines) == 3 and all(re.match(r"^【[^】]+】.+【[^】]+】$", line) for line in title_lines)
     schedule_times = [line.split(" ", 1)[0] for line in schedule_lines]
     internal_scene_terms = ["シーン", "scene_"]
+    schedule_one_line_joined = any(
+        re.search(r"\s(?:2:00|4:00|6:00|8:00)\s", line) for line in schedule_lines
+    )
+    comment_one_line_joined = len(comment_lines) == 1 and any(mark in comment_lines[0] for mark in ["。 ", "？ ", "? "])
+    metadata_format_items = [
+        ("タイムスケジュール5行出力", "OK" if len(schedule_lines) == 5 else "NG"),
+        ("タイムスケジュール1行連結なし", "OK" if not schedule_one_line_joined else "NG"),
+        ("コメント3行出力", "OK" if len(comment_lines) == 3 else "NG"),
+        ("コメント1行連結なし", "OK" if not comment_one_line_joined else "NG"),
+        ("コメント3行目固定文", "OK" if len(comment_lines) >= 3 and comment_lines[2] == COMMENT_FIXED_THIRD_LINE else "NG"),
+    ]
     report_items = [
         ("タイトルA", "OK" if "Pattern A：脅し・損失回避型" in title_section and len(title_lines) >= 1 else "NG"),
         ("タイトルB", "OK" if "Pattern B：誘惑・ベネフィット型" in title_section and len(title_lines) >= 2 else "NG"),
@@ -88,4 +99,6 @@ def build_metadata_quality_report(metadata: str) -> str:
     ]
     lines = ["", "## 投稿補助情報チェック", ""]
     lines.extend(f"- {name}：{status}" for name, status in report_items)
+    lines.extend(["", "【metadata出力整形チェック】", ""])
+    lines.extend(f"{name}：{status}" for name, status in metadata_format_items)
     return "\n".join(lines) + "\n"

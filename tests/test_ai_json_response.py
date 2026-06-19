@@ -64,7 +64,13 @@ def test_render_metadata_combines_structured_json_sections():
     rendered = render_metadata(
         {
             "titles": {"pattern_a": "A案", "pattern_b": "B案", "pattern_c": "C案"},
-            "schedule": [{"time": "0:00", "topic": "導入"}],
+            "schedule": [
+                {"time": "0:00", "topic": "本日のテーマ：導入"},
+                {"time": "2:00", "topic": "ポイント①：要点1"},
+                {"time": "4:00", "topic": "ポイント②：要点2"},
+                {"time": "6:00", "topic": "ポイント③：要点3"},
+                {"time": "8:00", "topic": "まとめ：締め"},
+            ],
             "description": {"text": "説明文", "count": 3},
             "comment": ["1行目", "2行目", "3行目"],
             "metadata": {},
@@ -74,7 +80,8 @@ def test_render_metadata_combines_structured_json_sections():
     assert rendered.startswith("# 投稿補助情報")
     assert "## タイトル案" in rendered
     assert "## タイムスケジュール" in rendered
-    assert "0:00 導入" in rendered
+    assert "0:00 本日のテーマ：導入" in rendered
+    assert "8:00 まとめ：締め" in rendered
     assert "## 50文字説明" in rendered
     assert "## コメント" in rendered
 
