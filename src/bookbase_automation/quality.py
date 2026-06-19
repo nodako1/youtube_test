@@ -46,6 +46,10 @@ def _compact_length(text: str) -> int:
     return len(re.sub(r"\s+", "", text))
 
 
+def count_scene_body_chars(body: str) -> int:
+    return len(body.strip())
+
+
 def _scene_bodies(script: str) -> dict[int, str]:
     matches = list(re.finditer(r"^【シーン(?P<number>\d+)】\s*$", script, flags=re.MULTILINE))
     scenes: dict[int, str] = {}
@@ -159,7 +163,7 @@ def _has_exact_scene_sequence(scenes: dict[int, str]) -> bool:
 def build_quality_report(script: str, titles: str, image_prompts: str, description: str = "") -> str:
     scene_map = _scene_bodies(script)
     scenes = _ordered_scene_bodies(script)
-    scene_lengths = [_compact_length(scene) for scene in scenes]
+    scene_lengths = [count_scene_body_chars(scene) for scene in scenes]
     total_chars = sum(scene_lengths)
     out_of_range = [
         f"シーン{index}: {length}字"
@@ -191,9 +195,17 @@ def build_quality_report(script: str, titles: str, image_prompts: str, descripti
     scene_19 = scene_map.get(19, "")
     scene_20 = scene_map.get(20, "")
 
+    heading_format_ok = not bool(re.search(r"^【シーン\d+】\S", script, flags=re.MULTILINE)) and _has_exact_scene_sequence(scene_map)
+    scene_gap_ok = bool(re.search(r"^【シーン1】\n", script)) and all(f"\n\n【シーン{index}】\n" in script for index in range(2, 21))
+    bullet_pattern = re.compile(r"(^|\n)\s*(?:[-*・]|\d+[.)．、])\s+")
+    no_bullets = all(not bullet_pattern.search(body) for body in scene_map.values())
+    body_one_paragraph_ok = _has_single_paragraph_scene_bodies(scene_map)
+
     results = [
         CheckResult("【シーン1】〜【シーン20】形式", "OK" if _has_exact_scene_sequence(scene_map) else "NG", f"検出シーン: {sorted(scene_map)}"),
-        CheckResult("シーン本文1段落", "OK" if _has_single_paragraph_scene_bodies(scene_map) else "NG", "シーン内改行なし"),
+        CheckResult("シーン本文1段落", "OK" if body_one_paragraph_ok else "NG", "シーン内改行なし"),
+        CheckResult("シーン間空行", "OK" if scene_gap_ok else "NG", "各シーンの間に空行1行"),
+        CheckResult("シーン本文箇条書きなし", "OK" if no_bullets else "NG", "Markdown箇条書き・番号リストなし"),
         CheckResult(
             "各シーン180〜220字",
             "OK" if len(scenes) == 20 and not out_of_range else "NG",
@@ -229,7 +241,25 @@ def build_quality_report(script: str, titles: str, image_prompts: str, descripti
         CheckResult("画像プロンプト所属ブロック", "OK" if image_items and not image_block_errors else "NG", "全シーン一致" if not image_block_errors else "; ".join(image_block_errors[:5])),
         CheckResult("重要ポイント画像の理解の流れ", "OK" if image_items and _image_prompt_flow_ok(image_items) else "NG", "重要ポイント1=土台、2=構造、3=実践の流れを確認してください"),
     ]
-    lines = ["# 品質チェック結果", ""]
+    lines = [
+        "# 品質チェック結果",
+        "",
+        "【原稿形式チェック】",
+        "",
+        f"シーン数：{len(scene_map)} / 20",
+        f"見出し形式：{'OK' if heading_format_ok else 'NG'}",
+        f"シーン間空行：{'OK' if scene_gap_ok else 'NG'}",
+        f"本文1段落：{'OK' if body_one_paragraph_ok else 'NG'}",
+        f"全体文字数：{total_chars}字 / 3600〜4400字",
+        "",
+        "【シーン別文字数】",
+        "",
+    ]
+    for index in range(1, 21):
+        length = count_scene_body_chars(scene_map.get(index, ""))
+        status = "OK" if SCENE_MIN_CHARS <= length <= SCENE_MAX_CHARS else "NG"
+        lines.append(f"シーン{index}：{length}字 {status}")
+    lines.extend(["", "## 詳細チェック", ""])
     for result in results:
         lines.append(f"- {result.name}: {result.status}（{result.detail}）")
     lines.extend(
