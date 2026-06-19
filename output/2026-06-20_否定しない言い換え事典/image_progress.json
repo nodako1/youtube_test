@@ -94,5 +94,13 @@
     "aspect_ratio_ok": true,
     "completed_at": "2026-06-20T08:46:19+09:00",
     "attempts": 1
+  },
+  "scene_13": {
+    "status": "OK",
+    "output_path": "/home/runner/work/bookbase-automation/bookbase-automation/output/2026-06-20_否定しない言い換え事典/images/scene_13.png",
+    "image_size": "1536x864",
+    "aspect_ratio_ok": true,
+    "completed_at": "2026-06-20T08:47:56+09:00",
+    "attempts": 1
   }
 }
