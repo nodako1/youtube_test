@@ -86,3 +86,29 @@ def test_ai_response_validation_error_report_is_written(tmp_path: Path):
     assert "エラー種別：AI応答JSON型検証失敗" in report
     assert "Unexpected titles type: list" in report
     assert (tmp_path / "parsed_ai_response.json").exists()
+
+
+def test_ensure_markdown_text_accepts_structured_script_dict():
+    from bookbase_automation.generator import _ensure_markdown_text
+
+    rendered = _ensure_markdown_text(
+        {
+            "scenes": [
+                {"scene": 1, "text": "導入です。"},
+                {"scene": 2, "text": "結論です。"},
+            ]
+        },
+        "script",
+    )
+
+    assert "【シーン1】" in rendered
+    assert "導入です。" in rendered
+    assert rendered.endswith("\n")
+
+
+def test_structured_optional_markdown_fields_are_rendered():
+    from bookbase_automation.generator import _ensure_markdown_text, render_image_prompts
+
+    assert "要点" in _ensure_markdown_text({"text": "要点"}, "thumbnail_ideas")
+    assert "- 注意: 確認" in _ensure_markdown_text({"注意": "確認"}, "thumbnail_comments")
+    assert render_image_prompts({"prompts": [{"scene": 1, "prompt": "desk"}]}).startswith("{")

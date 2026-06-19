@@ -30,10 +30,60 @@ class GeneratedAssets:
     research_scene_15: str
 
 
-def _ensure_markdown_text(value: Any, field_name: str) -> str:
+def _markdown_scalar(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
+
+
+def _markdown_from_value(value: Any, *, heading_level: int = 2) -> str:
     if isinstance(value, str):
-        return value.rstrip() + "\n"
-    raise ValueError(f"Unexpected {field_name} type: {type(value).__name__}")
+        return value.rstrip()
+    if isinstance(value, list):
+        lines: list[str] = []
+        for item in value:
+            if isinstance(item, str):
+                lines.append(item)
+            elif isinstance(item, dict):
+                if set(item) <= {"scene", "scene_number", "シーン番号", "text", "body", "content"}:
+                    scene = item.get("scene") or item.get("scene_number") or item.get("シーン番号")
+                    body = item.get("text") or item.get("body") or item.get("content") or ""
+                    prefix = f"【シーン{scene}】\n" if scene else ""
+                    lines.append(prefix + _markdown_scalar(body))
+                else:
+                    lines.extend(f"- {key}: {_markdown_scalar(item[key])}" for key in item)
+            else:
+                lines.append(_markdown_scalar(item))
+        return "\n".join(lines).rstrip()
+    if isinstance(value, dict):
+        preferred_body_keys = ("markdown", "text", "body", "content", "script")
+        for key in preferred_body_keys:
+            body = value.get(key)
+            if isinstance(body, str) and body.strip():
+                return body.rstrip()
+            if isinstance(body, (list, dict)):
+                return _markdown_from_value(body, heading_level=heading_level).rstrip()
+        lines: list[str] = []
+        marker = "#" * heading_level
+        for key, item in value.items():
+            if isinstance(item, (dict, list)):
+                rendered = _markdown_from_value(item, heading_level=heading_level + 1).rstrip()
+                lines.extend([f"{marker} {key}", "", rendered, ""])
+            else:
+                lines.append(f"- {key}: {_markdown_scalar(item)}")
+        return "\n".join(lines).rstrip()
+    return _markdown_scalar(value).rstrip()
+
+
+def _ensure_markdown_text(value: Any, field_name: str) -> str:
+    if not isinstance(value, (str, dict, list)):
+        raise ValueError(f"Unexpected {field_name} type: {type(value).__name__}")
+    rendered = _markdown_from_value(value).rstrip()
+    if not rendered:
+        raise ValueError(f"Unexpected {field_name} value: empty")
+    return rendered + "\n"
 
 
 def render_titles(titles: Any) -> str:
@@ -104,7 +154,7 @@ def render_comment(comment: Any) -> str:
 def render_image_prompts(image_prompts: Any) -> str:
     if isinstance(image_prompts, str):
         return image_prompts.rstrip() + "\n"
-    if isinstance(image_prompts, list):
+    if isinstance(image_prompts, (list, dict)):
         return json.dumps(image_prompts, ensure_ascii=False, indent=2) + "\n"
     raise ValueError(f"Unexpected image_prompts type: {type(image_prompts).__name__}")
 
