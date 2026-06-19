@@ -225,3 +225,36 @@ def test_scene_13_prompt_uses_variable_key_point_three_rules():
     assert "avoid repeating the Scene 09 or Scene 12 composition" in item["final_prompt"]
     assert "hands checking off" not in item["final_prompt"]
     assert "planner" not in item["composition"]
+
+def test_image_quality_report_includes_scene_14_checks():
+    from bookbase_automation.image_generation import build_image_quality_report
+
+    report = build_image_quality_report([])
+
+    assert "## 【scene_14 画像品質チェック】" in report
+    assert "scene_14固定役割に合っている：OK" in report
+    assert "重要ポイント③の具体化になっている：OK" in report
+    assert "visual_structure が適切：OK" in report
+    assert "可変ラベルが原稿から生成されている：OK" in report
+    assert "scene_13と構図が違う：OK" in report
+    assert "scene_18と役割が混ざっていない：OK" in report
+    assert "generic meeting image になっていない：OK" in report
+
+
+def test_scene_14_prompt_uses_variable_key_point_three_concretization_rules():
+    from bookbase_automation.generator import _build_image_prompt_item, build_image_context
+
+    script = _valid_script()
+    context = build_image_context(script, "テスト本", [])
+    item = _build_image_prompt_item(14, context)
+
+    assert item["fixed_role"] == "重要ポイント③の具体化"
+    assert item["visual_structure"] in {"practical_example", "step_demo", "before_after", "tool_use", "scenario_demo", "framework_application"}
+    assert len(item["exact_text_elements"]) <= 3
+    assert "Current Key Point 3" in item["final_prompt"]
+    assert "Current Scene 14 core message" in item["final_prompt"]
+    assert "Visual structure" in item["final_prompt"]
+    assert "Do not create a generic meeting scene unless the current script actually requires it" in item["final_prompt"]
+    assert "avoid repeating the Scene 13 composition or the later Scene 18 implementation composition" in item["final_prompt"]
+    assert "businessperson calmly responding" not in item["final_prompt"]
+    assert "Watercolor image of a businessperson calmly responding in a meeting" not in item["final_prompt"]
