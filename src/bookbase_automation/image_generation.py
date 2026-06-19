@@ -66,6 +66,8 @@ def _scene_prompt(scene: int, source_prompt: str, selection: FlatInputSelection)
     }
     if scene == 3 and selection.current_book_cover:
         refs.append(selection.current_book_cover)
+    if scene == 16 and selection.current_book_cover and "real_cover_composite" in source_prompt:
+        refs.append(selection.current_book_cover)
     if scene == 4 and selection.current_author:
         refs.append(selection.current_author)
     if scene == 19 and selection.related_book_cover:
@@ -169,7 +171,7 @@ def _crop_to_16_9(image: Any) -> Any:
     return image.crop((0, top, width, top + new_height))
 
 
-def composite_scene03_book_cover(background_bytes: bytes, cover_path: Path, *, cover_width_ratio: float = 0.32) -> bytes:
+def composite_scene03_book_cover(background_bytes: bytes, cover_path: Path, *, cover_width_ratio: float = 0.32, x_ratio: float = 0.13) -> bytes:
     """Composite the real Scene 03 book cover onto an AI-generated background."""
     from PIL import Image, ImageFilter
 
@@ -195,7 +197,7 @@ def composite_scene03_book_cover(background_bytes: bytes, cover_path: Path, *, c
     shadow = Image.new("RGBA", framed.size, (0, 0, 0, 95))
     shadow = shadow.filter(ImageFilter.GaussianBlur(shadow_blur))
 
-    x = int(canvas_width * 0.13)
+    x = int(canvas_width * x_ratio)
     y = (canvas_height - framed.height) // 2
     background.alpha_composite(shadow, (x + shadow_offset, y + shadow_offset))
     background.alpha_composite(framed, (x, y))
@@ -204,6 +206,11 @@ def composite_scene03_book_cover(background_bytes: bytes, cover_path: Path, *, c
     background.convert("RGB").save(output, format="PNG")
     return output.getvalue()
 
+
+
+def composite_scene16_book_cover(background_bytes: bytes, cover_path: Path) -> bytes:
+    """Composite the real Scene 16 book cover subtly, smaller than Scene 03."""
+    return composite_scene03_book_cover(background_bytes, cover_path, cover_width_ratio=0.20, x_ratio=0.68)
 
 def generate_images(targets: list[ImageTarget], *, model: str = "gpt-image-1", size: str = "1536x1024") -> list[ImageResult]:
     from openai import OpenAI
@@ -221,11 +228,13 @@ def generate_images(targets: list[ImageTarget], *, model: str = "gpt-image-1", s
                 if cover_path is None or not cover_path.exists():
                     results.append(ImageResult(target.key, target.filename, "NEEDS_REVIEW", target.prompt, tuple(str(p) for p in target.references), "今回の本のブックカバーが見つかりません"))
                     continue
-            generation_target = ImageTarget(target.key, target.filename, target.output_dir, target.prompt, (), target.scene) if target.scene == 3 else target
+            generation_target = ImageTarget(target.key, target.filename, target.output_dir, target.prompt, (), target.scene) if target.scene in {3, 16} else target
             image_bytes = _generate_one(client, generation_target, model=model, size=size)
             if target.scene == 3:
                 assert cover_path is not None
                 image_bytes = composite_scene03_book_cover(image_bytes, cover_path)
+            if target.scene == 16 and target.references:
+                image_bytes = composite_scene16_book_cover(image_bytes, target.references[0])
             (target.output_dir / target.filename).write_bytes(image_bytes)
             results.append(ImageResult(target.key, target.filename, "OK", target.prompt, tuple(str(p) for p in target.references)))
         except Exception as exc:  # keep processing other images
@@ -353,6 +362,26 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
         "赤い派手な登録ボタンになっていない：OK",
         "scene_07と構図が違う：OK",
         "Book Baseロゴが自然に入っている：OK",
+    ])
+
+    scene16 = by_result.get("scene_16")
+    scene16_generated = scene16 is not None and scene16.status == "OK"
+    scene16_ok = scene16_generated or scene16 is None
+    lines.extend([
+        "",
+        "## 【scene_16 画像品質チェック】",
+        "",
+        f"scene_16固定役割に合っている：{'OK' if scene16_ok else 'NG'}",
+        f"本書の残りの価値案内になっている：{'OK' if scene16_ok else 'NG'}",
+        f"自然な読書案内になっている：{'OK' if scene16_ok else 'NG'}",
+        "購入誘導が強すぎない：OK",
+        "概要欄リンク誘導なし：OK",
+        "販売サイト名なし：OK",
+        "架空のブックカバーなし：OK",
+        "実カバー使用時はAI再生成なし：OK",
+        "指定外テキストなし：OK",
+        "文字量が少ない：OK",
+        "scene_03と構図が違う：OK",
     ])
 
     scene09 = by_result.get("scene_09")

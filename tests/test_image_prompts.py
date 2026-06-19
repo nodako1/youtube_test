@@ -276,3 +276,59 @@ def test_scene_12_fallback_prompt_uses_comment_cta_experience_label():
     assert "avoid repeating the Scene 08 subscription CTA composition" in scene_12["final_prompt"]
     assert "Similar experience?" not in scene_12["final_prompt"]
     assert "Subscribe" not in scene_12["final_prompt"]
+
+
+def test_scene_16_fallback_prompt_guides_remaining_value_without_sales_language():
+    assets = generate_fallback_assets("本のメモ", "否定しない言い換え事典")
+    prompts = json.loads(assets.image_prompts)
+    scene_16 = prompts[15]
+
+    assert scene_16["scene"] == 16
+    assert scene_16["fixed_role"] == "本書の残りの価値案内"
+    assert scene_16["remaining_value_label"]
+    assert scene_16["read_invitation_label"] == "本書を手に取る"
+    assert scene_16["visual_mode"] in {
+        "generic_book",
+        "real_cover_composite",
+        "reading_nook",
+        "open_book",
+        "desk_still_life",
+    }
+    assert 1 <= len(scene_16["exact_text_elements"]) <= 3
+    assert "Use only the following Japanese text elements exactly as written" in scene_16["final_prompt"]
+    assert "not a sales advertisement" in scene_16["final_prompt"]
+    assert "Avoid clutter, avoid sales-like design, avoid purchase links" in scene_16["final_prompt"]
+    assert "Amazon" not in scene_16["final_prompt"]
+    assert "楽天" not in scene_16["final_prompt"]
+    assert "概要欄リンク" not in scene_16["final_prompt"]
+
+
+def test_scene_16_uses_real_cover_composite_when_cover_exists(tmp_path: Path):
+    from bookbase_automation.assets import AssetCheck
+
+    check = AssetCheck(3, "scene_03_current_book_cover", "今回紹介する本のブックカバー", "OK", "input/20260619_book_cover.webp", "input/YYYYMMDD_book_cover.* から動的に取得")
+    assets = generate_fallback_assets("本のメモ", "否定しない言い換え事典", [check])
+    scene_16 = json.loads(assets.image_prompts)[15]
+
+    assert scene_16["visual_mode"] == "real_cover_composite"
+    assert scene_16["book_cover_path"] == "input/20260619_book_cover.webp"
+    assert scene_16["post_process"]["composite_real_book_cover"] is True
+    assert "Do not draw or recreate the book cover" in scene_16["final_prompt"]
+    assert "smaller and more subtle than in Scene 03" in scene_16["final_prompt"]
+
+    cover = tmp_path / "20260619_book_cover.webp"
+    cover.write_bytes(b"cover")
+    selection = FlatInputSelection(
+        run_date=date(2026, 6, 19),
+        date_key="20260619",
+        current_sources=[],
+        current_book_covers=[cover],
+        current_authors=[],
+        related_sources=[],
+        related_book_covers=[],
+    )
+    targets = build_image_targets(tmp_path / "output", assets.image_prompts, selection)
+    target_16 = next(target for target in targets if target.scene == 16)
+
+    assert target_16.references == (cover,)
+    assert "real_cover_composite" in target_16.prompt

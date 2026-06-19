@@ -60,6 +60,7 @@ def build_image_context(script: str, book_title: str, asset_checks: list[AssetCh
     scene13 = _scene_body(script, 13)
     scene14 = _scene_body(script, 14)
     scene15 = _scene_body(script, 15)
+    scene16 = _scene_body(script, 16)
     scene18 = _scene_body(script, 18)
     options = {letter: _short_label(value, f"選択肢{letter}", 18) for letter, value in re.findall(r"([ABC])\.\s*([^ABC。]+)", scene1)}
     correct = (re.search(r"正解は\s*([ABC])", scene2) or re.search(r"正解は([ABC])", scene2))
@@ -89,7 +90,7 @@ def build_image_context(script: str, book_title: str, asset_checks: list[AssetCh
             {"index": 2, "label": labels[1], "core_message": labels[1]},
             {"index": 3, "label": labels[2], "core_message": labels[2]},
         ],
-        "scene_bodies": {"scene_05": scene5, "scene_06": scene6, "scene_07": scene7, "scene_09": scene9, "scene_10": scene10, "scene_11": scene11, "scene_12": scene12, "scene_13": scene13, "scene_14": scene14, "scene_15": scene15, "scene_18": scene18},
+        "scene_bodies": {"scene_05": scene5, "scene_06": scene6, "scene_07": scene7, "scene_09": scene9, "scene_10": scene10, "scene_11": scene11, "scene_12": scene12, "scene_13": scene13, "scene_14": scene14, "scene_15": scene15, "scene_16": scene16, "scene_18": scene18},
         "assets": {
             "book_cover": _asset_path(asset_checks, "scene_03_current_book_cover"),
             "author_reference": _asset_path(asset_checks, "scene_04_author_reference"),
@@ -1412,6 +1413,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
     scene_13_prompt = _scene_13_structured_prompt(context) if scene == 13 else None
     scene_14_prompt = _scene_14_structured_prompt(context) if scene == 14 else None
     scene_15_prompt = _scene_15_structured_prompt(context) if scene == 15 else None
+    scene_16_prompt = _scene_16_structured_prompt(context) if scene == 16 else None
     meta = _image_block_metadata(scene)
     composition_by_point = {
         "重要ポイント1": "仕事机、ノート、タスク、時計を使い、土台・入口・最初の気づきが伝わる構図",
@@ -1520,6 +1522,13 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         differentiation = "scene_14の重要ポイント③具体例から、引用・一節・思想要約で補強するカード／静物／象徴構図へ変える"
         prompt = str(scene_15_prompt["final_prompt"])
         recommended_composition = str(scene_15_prompt["composition"])
+    elif scene_16_prompt:
+        purpose = str(scene_16_prompt["scene_role"])
+        text = " / ".join(scene_16_prompt["exact_text_elements"])
+        differentiation = "scene_03の本紹介・大きな表紙構図ではなく、読書の余韻と残りの価値を伝える控えめな案内構図へ変える"
+        prompt = str(scene_16_prompt["final_prompt"])
+        recommended_composition = str(scene_16_prompt["composition"])
+        asset_note = "実ブックカバーを使う場合は後処理で控えめに合成し、AIには表紙を描かせません。" if scene_16_prompt["visual_mode"] == "real_cover_composite" else "実ブックカバーを使わず、タイトルのない一般的な本・開いた本・読書机で表現します。"
     else:
         recommended_composition = composition_by_point[point]
         prompt = (
@@ -1528,7 +1537,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
             f"scene {scene}, {meta['所属ブロック']}, {meta['ブロック内での役割']}, "
             f"{recommended_composition}, no long text, one clear message, avoid repeating adjacent composition"
         )
-    structured_prompt = scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt or scene_08_prompt or scene_09_prompt or scene_10_prompt or scene_11_prompt or scene_12_prompt or scene_13_prompt or scene_14_prompt or scene_15_prompt
+    structured_prompt = scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt or scene_08_prompt or scene_09_prompt or scene_10_prompt or scene_11_prompt or scene_12_prompt or scene_13_prompt or scene_14_prompt or scene_15_prompt or scene_16_prompt
     return {
         "シーン番号": scene,
         "所属ブロック": meta["所属ブロック"],
@@ -1544,7 +1553,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         "使用画像": used_image,
         "入力画像チェック": asset_note,
         "needs_review": bool((scene == 3 and used_image == "なし") or (asset_check and asset_check.status == "MISSING" and scene in {19}) or scene in {11, 15}),
-        "最終プロンプト": prompt + (f", reference image: {used_image}, asset note: {asset_note}" if scene not in {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15} else ""),
+        "最終プロンプト": prompt + (f", reference image: {used_image}, asset note: {asset_note}" if scene not in {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16} else ""),
         "scene": scene,
         "prompt": prompt,
         "scene_role": structured_prompt["scene_role"] if structured_prompt else meta["ブロック内での役割"],
@@ -1568,7 +1577,77 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         **({"fixed_role": scene_13_prompt["fixed_role"], "point_3_label": scene_13_prompt["point_3_label"], "point_3_core_message": scene_13_prompt["point_3_core_message"], "point_3_type": scene_13_prompt["point_3_type"], "visual_metaphor": scene_13_prompt["visual_metaphor"]} if scene_13_prompt else {}),
         **({"fixed_role": scene_14_prompt["fixed_role"], "point_3_label": scene_14_prompt["point_3_label"], "scene_14_core_message": scene_14_prompt["scene_14_core_message"], "example_context_label": scene_14_prompt["example_context_label"], "action_label": scene_14_prompt["action_label"], "result_label": scene_14_prompt["result_label"], "visual_structure": scene_14_prompt["visual_structure"], "visual_metaphor": scene_14_prompt["visual_metaphor"]} if scene_14_prompt else {}),
         **({"fixed_role": scene_15_prompt["fixed_role"], "point_3_label": scene_15_prompt["point_3_label"], "scene_15_core_message": scene_15_prompt["scene_15_core_message"], "quote_source_type": scene_15_prompt["quote_source_type"], "quote_source_name": scene_15_prompt["quote_source_name"], "quote_excerpt_label": scene_15_prompt["quote_excerpt_label"], "lesson_label": scene_15_prompt["lesson_label"], "attribution_status": scene_15_prompt["attribution_status"], "visual_mode": scene_15_prompt["visual_mode"]} if scene_15_prompt else {}),
+        **({"fixed_role": scene_16_prompt["fixed_role"], "book_title": scene_16_prompt["book_title"], "book_cover_path": scene_16_prompt["book_cover_path"], "remaining_value_label": scene_16_prompt["remaining_value_label"], "read_invitation_label": scene_16_prompt["read_invitation_label"], "visual_mode": scene_16_prompt["visual_mode"], "post_process": scene_16_prompt["post_process"]} if scene_16_prompt else {}),
     }
+
+
+def _scene_16_visual_mode(cover: str | None, scene16_body: str) -> str:
+    if cover:
+        return "real_cover_composite"
+    if re.search(r"開いた|ページ|具体例|詳しく|学べ", scene16_body):
+        return "open_book"
+    if re.search(r"机|ノート|ペン|しおり|余韻", scene16_body):
+        return "desk_still_life"
+    return "generic_book"
+
+
+def _scene_16_composition(visual_mode: str) -> str:
+    mapping = {
+        "generic_book": "構図B：タイトルのない一般的な本に手がそっと伸びる。本を大きく見せすぎず、余白と読書灯で自然な読書案内にする。",
+        "real_cover_composite": "構図D：実ブックカバーを右または左に控えめに後処理合成するための清潔な余白を残し、背景は落ち着いた読書机にする。scene_03ほど大きくしない。",
+        "reading_nook": "構図A：静かな読書スペース、開いた本、しおり、ノート、読書灯を配置し、売り込みではなく余韻を中心にする。",
+        "open_book": "構図A：開いた本のページ、しおり、ノート、ペンを中心に、本の中にまだ学びが残っていることを余白で表現する。",
+        "desk_still_life": "構図C：本、ノート、ペン、しおり、小さなカードを静物画のように配置し、短い2語だけをカードに置く。",
+    }
+    return mapping.get(visual_mode, mapping["generic_book"])
+
+
+def _scene_16_structured_prompt(context: dict[str, object]) -> dict[str, object]:
+    scene_bodies = context.get("scene_bodies", {})
+    scene16_body = str(scene_bodies.get("scene_16", "")) if isinstance(scene_bodies, dict) else ""
+    cover = context["assets"]["book_cover"]
+    remaining_value_label = _short_label(re.sub(r"もし気になった方.*", "", scene16_body), "さらに深く学ぶ", 12)
+    if remaining_value_label in {"ここで紹介した以外", "もし気になった方は"} or len(remaining_value_label) < 4:
+        remaining_value_label = "さらに深く学ぶ"
+    read_invitation_label = "本書を手に取る"
+    visual_mode = _scene_16_visual_mode(str(cover) if cover else None, scene16_body)
+    composition = _scene_16_composition(visual_mode)
+    elements = [remaining_value_label, read_invitation_label]
+    mode_rule = ""
+    if visual_mode == "real_cover_composite":
+        mode_rule = "The actual book cover will be composited later from the current input book_cover image. Do not draw or recreate the book cover. Leave a clean space for the real cover. The real cover should be smaller and more subtle than in Scene 03."
+    elif visual_mode == "generic_book":
+        mode_rule = "Use a generic book without a readable title. Do not invent a book cover. Do not write the current book title on the cover."
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+
+This is Scene 16. Its fixed role is to guide viewers to the remaining value of the book and gently invite them to read it. The image should feel like a calm reading invitation, not a sales advertisement. Do not include purchase links, store names, price, or aggressive buying language. Do not hard-code any book title from a previous video.
+
+Current remaining value:
+{remaining_value_label}
+
+Visual mode:
+{visual_mode}
+
+{TEXT_LOCK_INSTRUCTION}:
+{_text_block(elements)}
+
+Composition:
+{composition}
+
+Visual motifs:
+- book or open book
+- bookmark
+- notebook and pen
+- quiet reading desk
+- warm reading light
+- calm still-life atmosphere
+- enough whitespace
+- premium watercolor texture
+
+{mode_rule}
+
+Keep the image clean and easy to understand at a glance. Use minimal Japanese text only. Do not place long script text. Avoid clutter, avoid sales-like design, avoid purchase links, avoid fake book covers, avoid English text, and avoid repeating the Scene 03 book introduction composition."""
+    return {"scene": 16, "fixed_role": "本書の残りの価値案内", "scene_role": "本書の残りの価値案内", "core_message": remaining_value_label, "book_title": str(context["book_title"]), "book_cover_path": cover, "remaining_value_label": remaining_value_label, "read_invitation_label": read_invitation_label, "visual_mode": visual_mode, "exact_text_elements": elements, "composition": composition, "visual_motifs": ["book or open book", "bookmark", "notebook and pen", "quiet reading desk", "warm reading light"], "style": _COMMON_STYLE_FOR_SCHEMA, "negative_rules": ["購入リンクを入れない", "販売サイト名を入れない", "架空のブックカバーを作らない", "英語テキストを入れない", "scene_03と同じ大きな本紹介構図にしない"], "post_process": {"composite_real_book_cover": visual_mode == "real_cover_composite", "cover_width_ratio": "0.16-0.24", "smaller_than_scene_03": True}, "variation_key": f"scene-16-remaining-value-{visual_mode}", "final_prompt": final_prompt}
 
 def _fit_scene(text: str, *, min_chars: int = 180, max_chars: int = 220) -> str:
     filler = "会社員の現実に置き換えると、評価や納期に追われる場面でも、論点を一つずつ整理して行動へ移す助けになります。"
