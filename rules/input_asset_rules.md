@@ -1,59 +1,58 @@
-# Book Base 入力ファイル構成・人物画像取得ルール
+# Book Base 入力ファイル判定・人物画像取得ルール
 
 ## 目的
 
-Book Base自動化では、動画ごとの入力フォルダに、原稿作成用のメモと必要な画像素材を配置する。
-scene_11 と scene_15 に登場する人物は原稿作成後に決まるため、ユーザーが事前に人物画像を格納する運用にはしない。
-scene_11 と scene_15 の人物画像は、原稿生成後に確定した人物名をもとに検索・確認し、画像生成または画像プロンプト作成に反映する。
+Book Base自動化では、GitHub上の`input/`直下に置かれた日付付き素材ファイルをもとに、動画ごとの原稿・画像プロンプト・画像ファイル・品質レポートを生成する。
+サブフォルダは作らず、ファイル名の先頭8桁の日付と、ファイル名・拡張子から役割を判定する。
 
-## 最新の入力フォルダ構成
+## 最新の入力ファイル構成
 
 ```text
 input/
-└── YYYYMMDD_book_slug/
-    ├── source.txt
-    ├── scene_19_related_video.txt
-    └── assets/
-        ├── scene_03_current_book_cover.png
-        ├── scene_04_author_reference.png
-        └── scene_19_related_book_cover.png
+├── 今日の日付_author.jpg
+├── 今日の日付_book_cover.webp
+├── 今日の日付_今回の本タイトル.rtfd.zip
+├── 過去日付_関連動画の本タイトル.rtfd.zip
+└── 過去日付_book_cover.webp
 ```
 
-## ユーザーが事前に用意するファイル
-
-### 必須ファイル
+具体例：
 
 ```text
-source.txt
-assets/scene_03_current_book_cover.png
-scene_19_related_video.txt
-assets/scene_19_related_book_cover.png
+input/
+├── 20260619_author.jpg
+├── 20260619_book_cover.webp
+├── 20260619_否定しない言い換え事典.rtfd.zip
+├── 20260616_雑談する人はなぜかうまくいく.rtfd.zip
+└── 20260616_book_cover.webp
 ```
 
-### 任意だが推奨
+## 今日の日付が付いたファイル
+
+今日の日付が付いたファイルは、今回の動画用素材として扱う。
 
 ```text
-assets/scene_04_author_reference.png
+YYYYMMDD_author.jpg / .jpeg / .png / .webp
+→ 今回の著者参考画像。scene_04で使用。
+
+YYYYMMDD_book_cover.webp / .png / .jpg / .jpeg
+→ 今回の本のブックカバー。scene_03とサムネイルで使用。
+
+YYYYMMDD_本タイトル.rtfd.zip
+→ 今回の動画の原稿材料。
 ```
 
-### ユーザーが事前に用意しないファイル
+## 過去日付が付いたファイル
+
+今日より前の日付が付いたファイルは、scene_19で紹介する過去動画・関連動画用素材として扱う。
 
 ```text
-assets/scene_11_story_person_reference.png
-assets/scene_15_quote_person_reference.png
+過去日付_本タイトル.rtfd.zip
+→ scene_19で紹介する過去動画・関連動画の内容。
+
+過去日付_book_cover.webp / .png / .jpg / .jpeg
+→ scene_19で使う過去動画・関連動画のブックカバー。
 ```
-
-scene_11 と scene_15 の人物は、原稿作成後にCodexが対象人物を確定し、検索・確認して画像生成に反映する。
-
-## 各ファイルの役割
-
-| ファイル名 | 役割 |
-| --- | --- |
-| `source.txt` | 本の内容・読書メモ・原稿作成の材料 |
-| `assets/scene_03_current_book_cover.png` | 今回紹介する本のブックカバー。scene_03とサムネイルで使用 |
-| `assets/scene_04_author_reference.png` | 著者イラスト作成用の参考画像。任意だが推奨 |
-| `scene_19_related_video.txt` | scene_19で接続する過去動画・関連動画の情報 |
-| `assets/scene_19_related_book_cover.png` | scene_19で紹介する過去動画・関連動画側の本のブックカバー |
 
 ## scene_11 の人物取得ルール
 
@@ -81,46 +80,24 @@ Codexは原稿生成時に、重要ポイント③を補強できる名言を選
 research/scene_15_quote_person.md
 ```
 
-## scene_19 関連動画情報の入力ルール
-
-scene_19では、ユーザーが事前に指定した過去動画・関連動画へ接続する。
-ユーザーは以下の2つを事前に用意する。
-
-```text
-scene_19_related_video.txt
-assets/scene_19_related_book_cover.png
-```
-
-`scene_19_related_video.txt` は以下の形式で入力する。
-
-```text
-関連動画タイトル：
-関連動画で紹介した本：
-著者名：
-今回の動画とのつながり：
-scene_19で伝えたい接続文：
-関連動画URL：
-```
-
-URLがない場合は空欄でもよい。ただし、関連動画タイトル、関連動画で紹介した本、今回の動画とのつながりは必須とする。
-scene_19 の原稿では、単なる宣伝ではなく、今回の動画と過去動画・関連動画がなぜつながるのかを自然に説明する。
-scene_19 の画像では `assets/scene_19_related_book_cover.png` を使い、今回の本とのつながりを視覚的に表現する。
-
 ## quality_report.mdへの記録
 
 ```text
-【入力ファイルチェック】
+【inputファイル判定】
 
-source.txt：OK / MISSING
-scene_19_related_video.txt：OK / MISSING
-scene_03_current_book_cover：OK / MISSING
-scene_04_author_reference：OK / MISSING / OPTIONAL
-scene_19_related_book_cover：OK / MISSING
+実行日：
+今日の日付キー：
 
-【自動取得情報チェック】
+今回の原稿材料：
+今回のブックカバー：
+今回の著者画像：
+scene_19用原稿材料：
+scene_19用ブックカバー：
 
-scene_11_story_person：OK / NEEDS_REVIEW
-scene_11_story_person_source：OK / NEEDS_REVIEW
-scene_15_quote_person：OK / NEEDS_REVIEW
-scene_15_quote_source：OK / NEEDS_REVIEW
+【判定結果】
+今回の原稿材料：OK / MISSING / DUPLICATED
+今回のブックカバー：OK / MISSING / DUPLICATED
+今回の著者画像：OK / MISSING / OPTIONAL
+scene_19用原稿材料：OK / MISSING / DUPLICATED
+scene_19用ブックカバー：OK / MISSING / DUPLICATED
 ```

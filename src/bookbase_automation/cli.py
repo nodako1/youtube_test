@@ -14,6 +14,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--use-ai", action="store_true", help="Use OpenAI API for production generation")
     parser.add_argument("--allow-fallback", action="store_true", help="Allow deterministic fallback generation for local smoke tests only")
     parser.add_argument("--model", default="gpt-4.1-mini", help="OpenAI model for --use-ai")
+    parser.add_argument("--generate-images", action="store_true", help="Generate PNG image files with the OpenAI Images API")
+    parser.add_argument("--image-scene03-only", action="store_true", help="Only generate output images/scene_03.png for API smoke testing")
+    parser.add_argument("--image-model", default="gpt-image-1", help="OpenAI image model for image generation/editing")
     return parser
 
 
@@ -25,6 +28,9 @@ def main() -> int:
         use_ai=args.use_ai,
         allow_fallback=args.allow_fallback,
         model=args.model,
+        generate_images=args.generate_images,
+        image_scene03_only=args.image_scene03_only,
+        image_model=args.image_model,
     )
     outputs = run(config)
     if not outputs:

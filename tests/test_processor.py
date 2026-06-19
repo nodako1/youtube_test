@@ -4,27 +4,11 @@ from bookbase_automation.config import AppConfig
 from bookbase_automation.processor import run
 
 
-def test_run_processes_one_input_file(tmp_path: Path):
-    config = AppConfig.from_root(tmp_path, allow_fallback=True)
-    config.ensure_directories()
-    (config.input_dir / "20260618_テスト本.txt").write_text("仕事で使える本の要点です。判断、習慣、行動について説明します。", encoding="utf-8")
+def _write_rtfd(path: Path, text: str) -> None:
+    from zipfile import ZipFile
 
-    outputs = run(config)
-
-    assert len(outputs) == 1
-    out_dir = outputs[0]
-    assert (out_dir / "01_script.md").exists()
-    assert (out_dir / "02_titles.md").exists()
-    assert (out_dir / "03_description.md").exists()
-    assert (out_dir / "metadata.md").exists()
-    assert (out_dir / "04_thumbnail_ideas.md").exists()
-    assert (out_dir / "06_thumbnail_comments.md").exists()
-    assert (out_dir / "05_image_prompts.json").exists()
-    assert (out_dir / "research" / "scene_11_story_person.md").exists()
-    assert (out_dir / "research" / "scene_15_quote_person.md").exists()
-    assert (out_dir / "quality_report.md").exists()
-    assert not list(config.input_dir.glob("*.txt"))
-    assert list(config.archive_dir.glob("*.txt"))
+    with ZipFile(path, "w") as archive:
+        archive.writestr("TXT.rtf", text)
 
 
 def test_run_does_nothing_without_input(tmp_path: Path):
@@ -34,10 +18,14 @@ def test_run_does_nothing_without_input(tmp_path: Path):
     assert run(config) == []
 
 
-def test_run_requires_ai_or_explicit_fallback(tmp_path: Path):
+def test_run_requires_ai_or_explicit_fallback_for_flat_input(tmp_path: Path):
+    from datetime import date
+
     config = AppConfig.from_root(tmp_path)
     config.ensure_directories()
-    (config.input_dir / "20260618_テスト本.txt").write_text("本文", encoding="utf-8")
+    today = date.today().strftime("%Y%m%d")
+    current = config.input_dir / f"{today}_テスト本.rtfd.zip"
+    _write_rtfd(current, "本文")
 
     try:
         run(config)
@@ -45,44 +33,62 @@ def test_run_requires_ai_or_explicit_fallback(tmp_path: Path):
         assert "--use-ai" in str(exc)
     else:
         raise AssertionError("AIなし本番実行が許可されています")
-    assert list(config.error_dir.glob("2026-06-18_テスト本/*.txt"))
+    assert (config.error_dir / f"{today}_テスト本" / "error_report.md").exists()
 
 
-def test_run_processes_folder_input_with_latest_assets_and_related_video(tmp_path: Path):
-    config = AppConfig.from_root(tmp_path, allow_fallback=True)
+def test_run_processes_flat_rtfd_inputs_and_writes_scene03_prompt(tmp_path: Path):
+    from datetime import date
+
+    config = AppConfig.from_root(tmp_path, allow_fallback=True, image_scene03_only=True)
     config.ensure_directories()
-    input_folder = config.input_dir / "20260618_test_book"
-    assets = input_folder / "assets"
-    assets.mkdir(parents=True)
-    (input_folder / "source.txt").write_text("仕事で使える本の要点です。", encoding="utf-8")
-    (input_folder / "scene_19_related_video.txt").write_text(
-        "関連動画タイトル：お金はこれで増やせます\n今回の動画とのつながり：判断の整理がお金の不安対策とつながるため。",
-        encoding="utf-8",
-    )
-    (assets / "scene_03_current_book_cover.jpg").write_text("image", encoding="utf-8")
-    (assets / "scene_19_related_book_cover.png").write_text("image", encoding="utf-8")
+    today = date.today().strftime("%Y%m%d")
+    current = config.input_dir / f"{today}_否定しない言い換え事典.rtfd.zip"
+    related = config.input_dir / "20260616_雑談する人はなぜかうまくいく.rtfd.zip"
+    _write_rtfd(current, "否定しない言い換えの読書メモです。")
+    _write_rtfd(related, "雑談に関する過去動画メモです。")
+    (config.input_dir / f"{today}_book_cover.webp").write_bytes(b"fake cover")
+    (config.input_dir / f"{today}_author.jpg").write_bytes(b"fake author")
+    (config.input_dir / "20260616_book_cover.webp").write_bytes(b"fake related cover")
 
     outputs = run(config)
 
     out_dir = outputs[0]
+    assert (out_dir / "script.md").exists()
+    assert (out_dir / "image_prompts.md").exists()
+    assert (out_dir / "failed_images.md").read_text(encoding="utf-8").startswith("# failed_images.md")
     report = (out_dir / "quality_report.md").read_text(encoding="utf-8")
-    metadata = (out_dir / "metadata.md").read_text(encoding="utf-8")
-    prompts = (out_dir / "05_image_prompts.json").read_text(encoding="utf-8")
-    thumbnail_comments = (out_dir / "06_thumbnail_comments.md").read_text(encoding="utf-8")
-    research_11 = (out_dir / "research" / "scene_11_story_person.md").read_text(encoding="utf-8")
-    assert "投稿補助情報チェック" in report
-    assert "自動取得情報チェック" in report
-    assert "# 投稿補助情報" in metadata
-    assert "source：OK" in report
-    assert "scene_19_related_video：OK" in report
-    assert "scene_03_current_book_cover：OK" in report
-    assert "scene_04_author_reference：OPTIONAL" in report
-    assert "scene_19_related_book_cover：OK" in report
-    assert "scene_11_story_person_reference" not in report
-    assert "scene_15_quote_person_reference" not in report
-    assert "assets/scene_03_current_book_cover.jpg" in prompts
-    assert "人物画像未取得の場合" in prompts
-    assert "thumbnail_A_loss_aversion.png" in thumbnail_comments
-    assert "NEEDS_REVIEW" in research_11
-    assert not input_folder.exists()
-    assert (config.archive_dir / "20260618_test_book" / "source.txt").exists()
+    prompts = (out_dir / "image_prompts.md").read_text(encoding="utf-8")
+    assert "【inputファイル判定】" in report
+    assert "今回の原稿材料：OK" in report
+    assert "今回のブックカバー：OK" in report
+    assert "scene_03：NEEDS_REVIEW" in report
+    assert "scene_03.png" in prompts
+    assert "book_cover" in prompts
+    assert out_dir.name.startswith(today)
+    assert not list(config.input_dir.iterdir())
+    archived_files = list((config.archive_dir / out_dir.name).iterdir())
+    assert {path.name for path in archived_files} >= {current.name, related.name, f"{today}_book_cover.webp"}
+
+
+def test_flat_image_generation_without_api_key_moves_inputs_to_error(tmp_path: Path, monkeypatch):
+    from datetime import date
+
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    config = AppConfig.from_root(tmp_path, allow_fallback=True, generate_images=True, image_scene03_only=True)
+    config.ensure_directories()
+    today = date.today().strftime("%Y%m%d")
+    current = config.input_dir / f"{today}_テスト本.rtfd.zip"
+    _write_rtfd(current, "テスト本文です。")
+    (config.input_dir / f"{today}_book_cover.webp").write_bytes(b"fake cover")
+
+    try:
+        run(config)
+    except RuntimeError as exc:
+        assert "OPENAI_API_KEY" in str(exc)
+    else:
+        raise AssertionError("OPENAI_API_KEYなしで画像生成が成功しています")
+
+    error_dir = config.error_dir / f"{today}_テスト本"
+    assert (error_dir / "error_report.md").exists()
+    assert (error_dir / current.name).exists()
+    assert not any(path.name.startswith(today) for path in config.input_dir.iterdir())

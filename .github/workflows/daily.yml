@@ -1,9 +1,9 @@
-name: Daily Book Base Automation
+name: Book Base automation
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: "0 22 * * *" # 07:00 JST
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -11,33 +11,42 @@ permissions:
 jobs:
   generate:
     runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install package
-        run: python -m pip install -e .[ai]
-      - name: Require OpenAI API key
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Install dependencies
         run: |
-          if [ -z "$OPENAI_API_KEY" ]; then
-            echo "OPENAI_API_KEY secret is required for production runs." >&2
-            exit 1
-          fi
-      - name: Generate assets
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python -m bookbase_automation.cli --root . --use-ai
-      - name: Commit generated files
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[ai]'
+
+      - name: Generate Book Base assets
+        run: PYTHONPATH=src python -m bookbase_automation.cli --root . --use-ai --generate-images
+
+      - name: Show generated changes
+        if: always()
         run: |
-          if [ -n "$(git status --porcelain)" ]; then
+          git status --short input output archive error || true
+          find output archive error -maxdepth 3 -type f | sort || true
+
+      - name: Commit and push generated assets
+        if: always()
+        run: |
+          if [ -n "$(git status --porcelain input output archive error)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add input processing output archive error
-            git commit -m "Add generated Book Base assets"
+            git add input output archive error
+            git commit -m "Generate Book Base assets for $(date -u +%Y%m%d)"
             git push
           else
-            echo "No generated changes."
+            echo "No generated changes to commit."
           fi
