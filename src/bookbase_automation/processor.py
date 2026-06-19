@@ -108,6 +108,7 @@ def process_one(input_path: Path, config: AppConfig) -> Path:
         report += build_metadata_quality_report(assets.metadata)
         report += build_asset_report(asset_checks)
         report += _build_research_quality_report(assets.research_scene_11, assets.research_scene_15)
+        report += assets.api_communication_report
         (out_dir / "quality_report.md").write_text(report, encoding="utf-8")
         if processing_path.name == "source.txt" and processing_path.parent.parent == config.processing_dir:
             move_path(processing_path.parent, config.archive_dir)
@@ -219,6 +220,7 @@ def process_flat_inputs(config: AppConfig) -> Path:
         report += build_flat_input_report(selection)
         report += image_report
         report += _build_research_quality_report(assets.research_scene_11, assets.research_scene_15)
+        report += assets.api_communication_report
         (out_dir / "quality_report.md").write_text(report, encoding="utf-8")
         for used_file in selection.used_files:
             if used_file.exists():

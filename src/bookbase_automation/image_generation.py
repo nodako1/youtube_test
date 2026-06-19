@@ -4,12 +4,14 @@ import base64
 import io
 import json
 import os
+import time
 from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
 from .input_assets import FlatInputSelection
+from .openai_retry import OpenAIAPICallRecord, edit_image_with_retry, format_openai_api_report, generate_image_with_retry
 
 SCENE_FILENAMES = {scene: f"scene_{scene:02d}.png" for scene in range(1, 21)}
 THUMBNAIL_TARGETS = {
@@ -45,6 +47,7 @@ class ImageResult:
     common_rules_applied: bool = False
     scene_rules_applied: bool = False
     text_constraints_ok: bool = False
+    api_communication_report: str = ""
 
 
 def _common_style() -> str:
@@ -452,16 +455,16 @@ def _extract_b64(response: Any) -> str:
     raise RuntimeError("画像APIレスポンスにb64_jsonがありません。")
 
 
-def _generate_one(client: Any, target: ImageTarget, *, model: str, size: str, quality: str, output_format: str) -> bytes:
+def _generate_one(client: Any, target: ImageTarget, *, model: str, size: str, quality: str, output_format: str, records: list[OpenAIAPICallRecord] | None = None) -> bytes:
     if target.references:
         images = [open(path, "rb") for path in target.references]
         try:
-            response = client.images.edit(model=model, image=images if len(images) > 1 else images[0], prompt=target.prompt, size=size, quality=quality, output_format=output_format, n=1)
+            response = edit_image_with_retry(client, target=target.key, records=records, model=model, image=images if len(images) > 1 else images[0], prompt=target.prompt, size=size, quality=quality, output_format=output_format, n=1)
         finally:
             for image in images:
                 image.close()
     else:
-        response = client.images.generate(model=model, prompt=target.prompt, size=size, quality=quality, output_format=output_format, n=1)
+        response = generate_image_with_retry(client, target=target.key, records=records, model=model, prompt=target.prompt, size=size, quality=quality, output_format=output_format, n=1)
     return base64.b64decode(_extract_b64(response))
 
 
@@ -540,11 +543,12 @@ def generate_images(targets: list[ImageTarget], *, model: str = "gpt-image-2", s
         raise RuntimeError("OPENAI_API_KEY が設定されていません。")
     from openai import OpenAI
 
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(api_key=api_key, timeout=180.0, max_retries=5)
     results: list[ImageResult] = []
     for target in targets:
         target.output_dir.mkdir(parents=True, exist_ok=True)
         output_path = target.output_dir / target.filename
+        api_records: list[OpenAIAPICallRecord] = []
         try:
             if output_path.exists() and not force:
                 exists_ok, image_size, ratio_ok, validation_error = validate_png_16_9(output_path)
@@ -556,7 +560,8 @@ def generate_images(targets: list[ImageTarget], *, model: str = "gpt-image-2", s
                     results.append(ImageResult(target.key, target.filename, "NEEDS_REVIEW", target.prompt, tuple(str(p) for p in target.references), "今回の本のブックカバーが見つかりません", str(output_path), False, None, False, False, True, target.scene is not None, False))
                     continue
             generation_target = ImageTarget(target.key, target.filename, target.output_dir, target.prompt, (), target.scene) if target.scene in {3, 16} else target
-            image_bytes = _generate_one(client, generation_target, model=model, size=size, quality=quality, output_format=output_format)
+            image_bytes = _generate_one(client, generation_target, model=model, size=size, quality=quality, output_format=output_format, records=api_records)
+            time.sleep(1.0)
             if target.scene == 3:
                 assert cover_path is not None
                 image_bytes = composite_scene03_book_cover(image_bytes, cover_path)
@@ -565,9 +570,9 @@ def generate_images(targets: list[ImageTarget], *, model: str = "gpt-image-2", s
             output_path.write_bytes(image_bytes)
             exists_ok, image_size, ratio_ok, validation_error = validate_png_16_9(output_path)
             status = "OK" if exists_ok and ratio_ok else "FAILED"
-            results.append(ImageResult(target.key, target.filename, status, target.prompt, tuple(str(p) for p in target.references), validation_error, str(output_path), exists_ok, image_size, ratio_ok, True, True, target.scene is not None, "Use only the following Japanese text elements exactly as written" in target.prompt or "minimal concise Japanese text" in target.prompt))
+            results.append(ImageResult(target.key, target.filename, status, target.prompt, tuple(str(p) for p in target.references), validation_error, str(output_path), exists_ok, image_size, ratio_ok, True, True, target.scene is not None, "Use only the following Japanese text elements exactly as written" in target.prompt or "minimal concise Japanese text" in target.prompt, format_openai_api_report(api_records)))
         except Exception as exc:  # keep processing other images
-            results.append(ImageResult(target.key, target.filename, "FAILED", target.prompt, tuple(str(p) for p in target.references), str(exc), str(output_path), False, None, False, False, True, target.scene is not None, False))
+            results.append(ImageResult(target.key, target.filename, "FAILED", target.prompt, tuple(str(p) for p in target.references), str(exc), str(output_path), False, None, False, False, True, target.scene is not None, False, format_openai_api_report(api_records)))
     return results
 
 
@@ -597,6 +602,12 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
     by_key = {result.key: result.status for result in results}
     by_result = {result.key: result for result in results}
     lines = ["", "## 【画像生成チェック】", ""]
+    api_reports = [result.api_communication_report.strip() for result in results if result.api_communication_report.strip()]
+    if api_reports:
+        lines.extend(["## 【OpenAI API通信チェック】", ""] )
+        for report in api_reports:
+            lines.extend(report.replace("## 【OpenAI API通信チェック】\n", "").strip().splitlines())
+            lines.append("")
     selected_scenes = [3] if scene03_only else (scenes or list(range(1, 21)))
     for scene in selected_scenes:
         key = f"scene_{scene:02d}"
