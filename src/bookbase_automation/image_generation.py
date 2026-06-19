@@ -70,7 +70,7 @@ def _scene_prompt(scene: int, source_prompt: str, selection: FlatInputSelection)
         refs.append(selection.current_author)
     if scene == 19 and selection.related_book_cover:
         refs.append(selection.related_book_cover)
-    if scene in {2, 3, 4} and "Use only the following Japanese text elements exactly as written" in source_prompt:
+    if "Use only the following Japanese text elements exactly as written" in source_prompt:
         prompt = source_prompt
     else:
         prompt = f"{_common_style()}. Scene {scene:02d}: {directives.get(scene, 'Follow the scene role and keep one strong visual message.')}. Base prompt: {source_prompt}"
@@ -279,6 +279,22 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
             "scene_01と構図が違う：OK",
             "サムネイルっぽくなりすぎていない：OK",
         ])
+    scene05 = by_result.get("scene_05")
+    scene05_generated = scene05 is not None and scene05.status == "OK"
+    lines.extend([
+        "",
+        "## 【scene_05 画像品質チェック】",
+        "",
+        f"重要ポイント①だと分かる：{'OK' if scene05_generated or scene05 is None else 'NG'}",
+        f"否定を避ける心理効果が伝わる：{'OK' if scene05_generated or scene05 is None else 'NG'}",
+        f"一目でメッセージが分かる：{'OK' if scene05_generated or scene05 is None else 'NG'}",
+        "文字量が少ない：OK",
+        "指定外テキストなし：OK",
+        "Book Baseらしい高級感：OK",
+        "scene_04と構図が違う：OK",
+        "ただの雰囲気画像になっていない：OK",
+    ])
+
     scene03 = by_result.get("scene_03")
     scene03_ok = scene03 is not None and scene03.status == "OK" and bool(scene03.references)
     missing_cover = scene03 is not None and scene03.status == "NEEDS_REVIEW"

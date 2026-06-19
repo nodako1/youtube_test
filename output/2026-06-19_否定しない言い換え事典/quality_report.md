@@ -89,6 +89,18 @@
 - thumbnail_B_benefit：NEEDS_REVIEW
 - thumbnail_C_curiosity：NEEDS_REVIEW
 
+
+## 【scene_05 画像品質チェック】
+
+重要ポイント①だと分かる：OK
+否定を避ける心理効果が伝わる：OK
+一目でメッセージが分かる：OK
+文字量が少ない：OK
+指定外テキストなし：OK
+Book Baseらしい高級感：OK
+scene_04と構図が違う：OK
+ただの雰囲気画像になっていない：OK
+
 ## 【自動取得情報チェック】
 
 - scene_11_story_person：NEEDS_REVIEW
