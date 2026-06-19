@@ -214,3 +214,22 @@ def test_scene_08_fallback_prompt_uses_elegant_japanese_subscription_cta():
     assert "Continue learning" not in scene_08["final_prompt"]
     assert "Subscribe" not in scene_08["final_prompt"]
     assert "否定しない言い換え事典" not in scene_08["final_prompt"]
+
+def test_scene_09_fallback_prompt_introduces_key_point_2_dynamically():
+    assets = generate_fallback_assets("本のメモ", "否定しない言い換え事典")
+    prompts = json.loads(assets.image_prompts)
+    scene_09 = prompts[8]
+
+    assert scene_09["scene"] == 9
+    assert scene_09["fixed_role"] == "重要ポイント②の導入"
+    assert scene_09["point_2_label"]
+    assert scene_09["point_2_core_message"]
+    assert scene_09["point_2_type"] in {"method", "mindset", "habit", "process", "contrast", "skill", "framework"}
+    assert scene_09["exact_text_elements"][0] == "重要ポイント②"
+    assert len(scene_09["exact_text_elements"]) <= 3
+    assert "Use only the following Japanese text elements exactly as written" in scene_09["final_prompt"]
+    assert "Do not create a generic business conversation image" in scene_09["final_prompt"]
+    assert "avoid generic conversation scenes" in scene_09["final_prompt"]
+    assert "avoid repeating the Scene 08 CTA composition or Scene 05 Key Point 1 composition" in scene_09["final_prompt"]
+    assert "two business people in conversation" not in scene_09["final_prompt"]
+    assert "shift of perspective" not in scene_09["final_prompt"]

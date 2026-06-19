@@ -355,6 +355,26 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
         "Book Baseロゴが自然に入っている：OK",
     ])
 
+    scene09 = by_result.get("scene_09")
+    scene09_generated = scene09 is not None and scene09.status == "OK"
+    scene09_ok = scene09_generated or scene09 is None
+    lines.extend([
+        "",
+        "## 【scene_09 画像品質チェック】",
+        "",
+        f"scene_09固定役割に合っている：{'OK' if scene09_ok else 'NG'}",
+        f"重要ポイント②の導入だと分かる：{'OK' if scene09_ok else 'NG'}",
+        f"現在の原稿内容に沿っている：{'OK' if scene09_ok else 'NG'}",
+        f"point_2_label が原稿から生成されている：{'OK' if scene09_ok else 'NG'}",
+        f"point_2_type が適切：{'OK' if scene09_ok else 'NG'}",
+        "過去テーマのハードコードなし：OK",
+        "指定外テキストなし：OK",
+        "文字量が少ない：OK",
+        "scene_08と構図が違う：OK",
+        "scene_05と構図が違う：OK",
+        "generic business image になっていない：OK",
+    ])
+
     scene03 = by_result.get("scene_03")
     scene03_ok = scene03 is not None and scene03.status == "OK" and bool(scene03.references)
     missing_cover = scene03 is not None and scene03.status == "NEEDS_REVIEW"

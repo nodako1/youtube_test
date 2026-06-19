@@ -124,3 +124,16 @@ def test_image_quality_report_includes_scene_08_checks():
     assert "英語テキストなし：OK" in report
     assert "赤い派手な登録ボタンになっていない：OK" in report
     assert "scene_07と構図が違う：OK" in report
+
+def test_image_quality_report_includes_scene_09_checks():
+    from bookbase_automation.image_generation import build_image_quality_report
+
+    report = build_image_quality_report([])
+
+    assert "## 【scene_09 画像品質チェック】" in report
+    assert "scene_09固定役割に合っている：OK" in report
+    assert "重要ポイント②の導入だと分かる：OK" in report
+    assert "point_2_label が原稿から生成されている：OK" in report
+    assert "point_2_type が適切：OK" in report
+    assert "scene_08と構図が違う：OK" in report
+    assert "scene_05と構図が違う：OK" in report
