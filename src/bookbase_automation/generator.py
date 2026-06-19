@@ -63,6 +63,7 @@ def build_image_context(script: str, book_title: str, asset_checks: list[AssetCh
     scene16 = _scene_body(script, 16)
     scene17 = _scene_body(script, 17)
     scene18 = _scene_body(script, 18)
+    scene20 = _scene_body(script, 20)
     options = {letter: _short_label(value, f"選択肢{letter}", 18) for letter, value in re.findall(r"([ABC])\.\s*([^ABC。]+)", scene1)}
     correct = (re.search(r"正解は\s*([ABC])", scene2) or re.search(r"正解は([ABC])", scene2))
     point_matches = re.findall(r"[①②③](.*?)(?:、|。|です|$)", scene4)
@@ -92,7 +93,7 @@ def build_image_context(script: str, book_title: str, asset_checks: list[AssetCh
             {"index": 2, "label": labels[1], "core_message": labels[1]},
             {"index": 3, "label": labels[2], "core_message": labels[2]},
         ],
-        "scene_bodies": {"scene_05": scene5, "scene_06": scene6, "scene_07": scene7, "scene_09": scene9, "scene_10": scene10, "scene_11": scene11, "scene_12": scene12, "scene_13": scene13, "scene_14": scene14, "scene_15": scene15, "scene_16": scene16, "scene_17": scene17, "scene_18": scene18},
+        "scene_bodies": {"scene_05": scene5, "scene_06": scene6, "scene_07": scene7, "scene_09": scene9, "scene_10": scene10, "scene_11": scene11, "scene_12": scene12, "scene_13": scene13, "scene_14": scene14, "scene_15": scene15, "scene_16": scene16, "scene_17": scene17, "scene_18": scene18, "scene_20": scene20},
         "assets": {
             "book_cover": _asset_path(asset_checks, "scene_03_current_book_cover"),
             "author_reference": _asset_path(asset_checks, "scene_04_author_reference"),
@@ -1450,6 +1451,144 @@ Visual motifs:
 Keep the image clean and easy to understand at a glance. Use minimal Japanese text only. Do not place long script text. Avoid clutter, avoid English text, avoid advertisement-like design, avoid clickbait CTA, avoid excessive arrows, and avoid making the two books look unrelated."""
     return {"scene": 19, "fixed_role": "現在の本と関連過去動画の本を自然につなぐ接続シーン", "scene_role": "現在の本と関連過去動画の本を自然につなぐ接続シーン", "current_book_label": current_label, "related_book_label": related_label, "connection_reason": connection_reason, "connection_message": connection_message, "connection_type": connection_type, "visual_structure": visual_structure, "reference_image_path": current_cover, "related_book_cover_path": related_cover, "exact_text_elements": elements, "composition": composition, "visual_motifs": ["two books connected naturally", "softly glowing bridge", "light path", "flowing pages", "subtle ribbon", "calm structured whitespace"], "style": _COMMON_STYLE_FOR_SCHEMA, "negative_rules": ["CTA文を入れない", "広告バナー風にしない", "2冊をただ横に並べない", "参照画像だけを大きく表示しない", "過去動画側の本を省略しない", "英語テキストを入れない", "scene_20の締め画像にしない"], "variation_key": f"scene-19-learning-connection-{visual_structure}", "core_message": connection_message, "final_prompt": final_prompt}
 
+
+def _scene_20_closing_emotion(text: str) -> str:
+    if re.search(r"ありがとう|感謝|見てくれ|ご視聴", text):
+        return "appreciative"
+    if re.search(r"明日|一歩|前|変え|始め|進", text):
+        return "hopeful"
+    if re.search(r"振り返|考え|内省|重ね|見つめ", text):
+        return "reflective"
+    if re.search(r"静か|落ち着|余韻|受け止め", text):
+        return "serene"
+    return "warm"
+
+
+def _scene_20_closing_type(text: str, emotion: str) -> str:
+    if emotion == "appreciative":
+        return "warm_thank_you"
+    if re.search(r"次の一冊|次回|また", text):
+        return "next_book_invitation"
+    if re.search(r"持ち帰|日常|明日|活か|行動", text):
+        return "learning_takeaway"
+    if emotion in {"serene", "reflective"}:
+        return "quiet_reflection"
+    return "gentle_finish"
+
+
+def _scene_20_visual_structure(emotion: str, closing_type: str) -> str:
+    if closing_type == "next_book_invitation":
+        return "window_light"
+    if closing_type == "learning_takeaway":
+        return "calm_tabletop"
+    if closing_type == "quiet_reflection":
+        return "home_office_wide"
+    if emotion == "appreciative":
+        return "hand_and_book"
+    return "closing_book"
+
+
+def _scene_20_composition(visual_structure: str) -> str:
+    mapping = {
+        "closing_book": "構図A：静かなホームオフィスで、やさしく本を閉じる手元を中心に描く。一冊を読み終えた読後感を見せ、作業中や実践途中の雰囲気にはしない。",
+        "quiet_desk": "構図B：人物を大きく出さず、整った机に本・ノート・ペンを余白多めに置く。学びを静かに受け取った後の余韻を中心にする。",
+        "window_light": "構図B：窓からやわらかい朝の光が入り、机上の本とノートを包む。明日への前向きさを穏やかに出し、CTAや誘導表現にはしない。",
+        "hand_and_book": "構図A：手元と本を近めに見せ、読み終えた本にそっと触れる温度感を描く。感謝と余韻を主役にし、長い文字や広告風レイアウトを避ける。",
+        "home_office_wide": "構図D：静かなホームオフィス全体を少し引いて見せ、机・窓辺・本を上品な余白で配置する。関連動画接続や2冊の本の導線は入れない。",
+        "calm_tabletop": "構図C：本、ペン、ノート、コーヒーを俯瞰で静物画のように置き、余白と水彩の質感で締めの空気を表現する。チェックリスト中心の実践画像にしない。",
+    }
+    return mapping.get(visual_structure, mapping["closing_book"])
+
+
+def _scene_20_supporting_objects(visual_structure: str) -> list[str]:
+    mapping = {
+        "closing_book": ["本", "ノート", "ペン", "やわらかい朝の光"],
+        "quiet_desk": ["本", "ノート", "ペン", "小さなコーヒーカップ"],
+        "window_light": ["窓辺", "本", "ノート", "コーヒー"],
+        "hand_and_book": ["本を閉じる手元", "整った机", "ペン", "淡い金色の光"],
+        "home_office_wide": ["静かなホームオフィス", "窓辺", "本", "整った机"],
+        "calm_tabletop": ["本", "ノート", "ペン", "コーヒー", "余白"],
+    }
+    return mapping.get(visual_structure, mapping["closing_book"])
+
+
+def _scene_20_closing_text(final_message_label: str, closing_type: str) -> str:
+    if 4 <= len(final_message_label) <= 16 and not re.search(r"登録|高評価|クリック|関連動画|見てください|さん|『|』", final_message_label):
+        return final_message_label
+    by_type = {
+        "learning_takeaway": "学びを、日常へ",
+        "next_book_invitation": "また次の一冊で",
+        "quiet_reflection": "今日の学びを明日へ",
+        "warm_thank_you": "今日の学びを明日へ",
+        "gentle_finish": "学びを、日常へ",
+    }
+    return by_type.get(closing_type, "学びを、日常へ")
+
+
+def _scene_20_final_message_label(scene20_body: str, context: dict[str, object]) -> str:
+    label = _short_label(scene20_body or str(context.get("current_theme", "")), "学びを、日常へ", 16)
+    book_title = str(context.get("book_title", ""))
+    if book_title:
+        label = label.replace(book_title, "")
+    label = re.sub(r"登録|高評価|クリック|関連動画|見てください|ご視聴|ありがとう|さん|『|』", "", label).strip("。,.、")
+    if len(label) < 4:
+        return "学びを、日常へ"
+    return label[:16]
+
+
+def _scene_20_structured_prompt(context: dict[str, object]) -> dict[str, object]:
+    scene_bodies = context.get("scene_bodies", {})
+    scene20_body = str(scene_bodies.get("scene_20", "")) if isinstance(scene_bodies, dict) else ""
+    final_message_label = _scene_20_final_message_label(scene20_body, context)
+    closing_emotion = _scene_20_closing_emotion(scene20_body)
+    viewer_aftertaste_label = _short_label(scene20_body, "温かい余韻", 12)
+    closing_type = _scene_20_closing_type(scene20_body, closing_emotion)
+    visual_structure = _scene_20_visual_structure(closing_emotion, closing_type)
+    supporting_objects = _scene_20_supporting_objects(visual_structure)
+    closing_text = _scene_20_closing_text(final_message_label, closing_type)
+    elements = [closing_text]
+    composition = _scene_20_composition(visual_structure)
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, warm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+
+This is Scene 20. Its fixed role is to close the video warmly and leave viewers with a calm aftertaste, appreciation, and a positive feeling. The image should feel like the quiet moment after finishing a meaningful book. It must not become a recap scene, a practical work scene, a related-video promotion, or a CTA banner.
+
+Final message:
+{final_message_label}
+
+Closing emotion:
+{closing_emotion}
+
+Viewer aftertaste:
+{viewer_aftertaste_label}
+
+Closing type:
+{closing_type}
+
+Visual structure:
+{visual_structure}
+
+Supporting objects:
+{', '.join(supporting_objects)}
+
+{TEXT_LOCK_INSTRUCTION}:
+{_text_block(elements)}
+
+Composition:
+{composition}
+
+Visual motifs:
+- a gentle hand closing a book
+- quiet home office
+- soft morning light
+- calm desk with a book, notebook, pen, or coffee
+- serene and appreciative mood
+- warm cream and subtle gold tones
+- premium watercolor texture
+- calm structured whitespace
+
+Keep the image clean, warm, and easy to understand at a glance. Use minimal Japanese text only. Do not place long script text. Avoid clutter, avoid English text, avoid CTA wording, avoid advertisement-like design, avoid related-video connection motifs, and avoid turning the image into a recap or practical work scene."""
+    return {"scene": 20, "fixed_role": "動画全体を温かく締めるクロージングシーン", "scene_role": "動画全体を温かく締めるクロージングシーン", "final_message_label": final_message_label, "closing_emotion": closing_emotion, "viewer_aftertaste_label": viewer_aftertaste_label, "closing_type": closing_type, "visual_structure": visual_structure, "supporting_objects": supporting_objects, "exact_text_elements": elements, "composition": composition, "visual_motifs": ["a gentle hand closing a book", "quiet home office", "soft morning light", "calm desk with a book, notebook, pen, or coffee", "serene and appreciative mood", "warm cream and subtle gold tones", "premium watercolor texture", "calm structured whitespace"], "style": _COMMON_STYLE_FOR_SCHEMA, "negative_rules": ["3つのポイントをまとめる構図にしない", "チェックリストやタスクカード中心にしない", "過去動画接続や2冊の本を入れない", "CTA文を入れない", "広告バナー風にしない", "英語テキストを入れない", "長文や指定外テキストを入れない"], "variation_key": f"scene-20-closing-{closing_type}-{visual_structure}", "core_message": final_message_label, "final_prompt": final_prompt}
+
 def _image_block_metadata(scene: int) -> dict[str, str]:
     if 1 <= scene <= 4:
         block = "シーン1〜4：冒頭導入・クイズ・本紹介・重要ポイント提示"
@@ -1520,6 +1659,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
     scene_17_prompt = _scene_17_structured_prompt(context) if scene == 17 else None
     scene_18_prompt = _scene_18_structured_prompt(context) if scene == 18 else None
     scene_19_prompt = _scene_19_structured_prompt(context) if scene == 19 else None
+    scene_20_prompt = _scene_20_structured_prompt(context) if scene == 20 else None
     meta = _image_block_metadata(scene)
     composition_by_point = {
         "重要ポイント1": "仕事机、ノート、タスク、時計を使い、土台・入口・最初の気づきが伝わる構図",
@@ -1654,6 +1794,12 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         prompt = str(scene_19_prompt["final_prompt"])
         recommended_composition = str(scene_19_prompt["composition"])
         asset_note = "scene_19では今回の本の表紙を現在の本として扱い、関連過去動画の本も省略せず2冊の接続を描きます。" if used_image != "なし" else "scene_19：NEEDS_REVIEW。理由：関連過去動画側の本のブックカバーが見つかりません。2冊目を省略せず、入力確認後に生成してください。"
+    elif scene_20_prompt:
+        purpose = str(scene_20_prompt["scene_role"])
+        text = " / ".join(scene_20_prompt["exact_text_elements"])
+        differentiation = "scene_19の関連動画接続から、1冊の本・手元・静かな机・窓辺の光で動画全体を温かく締めるクロージング構図へ変える。scene_18の実践途中とも混ぜない"
+        prompt = str(scene_20_prompt["final_prompt"])
+        recommended_composition = str(scene_20_prompt["composition"])
     else:
         recommended_composition = composition_by_point[point]
         prompt = (
@@ -1662,7 +1808,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
             f"scene {scene}, {meta['所属ブロック']}, {meta['ブロック内での役割']}, "
             f"{recommended_composition}, no long text, one clear message, avoid repeating adjacent composition"
         )
-    structured_prompt = scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt or scene_08_prompt or scene_09_prompt or scene_10_prompt or scene_11_prompt or scene_12_prompt or scene_13_prompt or scene_14_prompt or scene_15_prompt or scene_16_prompt or scene_17_prompt or scene_18_prompt or scene_19_prompt
+    structured_prompt = scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt or scene_07_prompt or scene_08_prompt or scene_09_prompt or scene_10_prompt or scene_11_prompt or scene_12_prompt or scene_13_prompt or scene_14_prompt or scene_15_prompt or scene_16_prompt or scene_17_prompt or scene_18_prompt or scene_19_prompt or scene_20_prompt
     return {
         "シーン番号": scene,
         "所属ブロック": meta["所属ブロック"],
@@ -1706,6 +1852,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         **({"fixed_role": scene_17_prompt["fixed_role"], "point_1_label": scene_17_prompt["point_1_label"], "point_2_label": scene_17_prompt["point_2_label"], "point_3_label": scene_17_prompt["point_3_label"], "overall_takeaway_label": scene_17_prompt["overall_takeaway_label"], "point_relationship": scene_17_prompt["point_relationship"], "visual_structure": scene_17_prompt["visual_structure"]} if scene_17_prompt else {}),
         **({"fixed_role": scene_18_prompt["fixed_role"], "practice_theme_label": scene_18_prompt["practice_theme_label"], "application_context": scene_18_prompt["application_context"], "practice_action_label": scene_18_prompt["practice_action_label"], "viewer_takeaway_label": scene_18_prompt["viewer_takeaway_label"], "practice_type": scene_18_prompt["practice_type"], "visual_structure": scene_18_prompt["visual_structure"], "supporting_objects": scene_18_prompt["supporting_objects"]} if scene_18_prompt else {}),
         **({"fixed_role": scene_19_prompt["fixed_role"], "current_book_label": scene_19_prompt["current_book_label"], "related_book_label": scene_19_prompt["related_book_label"], "connection_reason": scene_19_prompt["connection_reason"], "connection_message": scene_19_prompt["connection_message"], "connection_type": scene_19_prompt["connection_type"], "visual_structure": scene_19_prompt["visual_structure"], "reference_image_path": scene_19_prompt["reference_image_path"], "related_book_cover_path": scene_19_prompt["related_book_cover_path"]} if scene_19_prompt else {}),
+        **({"fixed_role": scene_20_prompt["fixed_role"], "final_message_label": scene_20_prompt["final_message_label"], "closing_emotion": scene_20_prompt["closing_emotion"], "viewer_aftertaste_label": scene_20_prompt["viewer_aftertaste_label"], "closing_type": scene_20_prompt["closing_type"], "visual_structure": scene_20_prompt["visual_structure"], "supporting_objects": scene_20_prompt["supporting_objects"]} if scene_20_prompt else {}),
     }
 
 

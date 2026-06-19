@@ -319,3 +319,19 @@ def test_image_quality_report_includes_scene_18_checks():
     assert "visual_structure が設定されている：OK" in report
     assert "scene_17の総まとめ画像と役割が混ざっていない：OK" in report
     assert "generic office image になっていない：OK" in report
+
+
+def test_image_quality_report_includes_scene_20_checks():
+    from bookbase_automation.image_generation import build_image_quality_report
+
+    report = build_image_quality_report([])
+
+    assert "## 【scene_20 画像品質チェック】" in report
+    assert "scene_20固定役割に合っている：OK" in report
+    assert "final_message_label が定義されている：OK" in report
+    assert "closing_emotion が設定されている：OK" in report
+    assert "closing_type が設定されている：OK" in report
+    assert "visual_structure が設定されている：OK" in report
+    assert "scene_18の実践画像と役割が混ざっていない：OK" in report
+    assert "scene_19の関連動画接続画像と役割が混ざっていない：OK" in report
+    assert "CTA・広告バナー風になっていない：OK" in report

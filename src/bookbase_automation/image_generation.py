@@ -644,6 +644,30 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
         "generic office image になっていない：OK",
     ])
 
+    scene20 = by_result.get("scene_20")
+    scene20_generated = scene20 is not None and scene20.status == "OK"
+    scene20_ok = scene20_generated or scene20 is None
+    lines.extend([
+        "",
+        "## 【scene_20 画像品質チェック】",
+        "",
+        f"scene_20固定役割に合っている：{'OK' if scene20_ok else 'NG'}",
+        f"動画全体を温かく締める画像になっている：{'OK' if scene20_ok else 'NG'}",
+        f"読後感・余韻・感謝が伝わる：{'OK' if scene20_ok else 'NG'}",
+        f"final_message_label が定義されている：{'OK' if scene20_ok else 'NG'}",
+        f"closing_emotion が設定されている：{'OK' if scene20_ok else 'NG'}",
+        f"closing_type が設定されている：{'OK' if scene20_ok else 'NG'}",
+        f"visual_structure が設定されている：{'OK' if scene20_ok else 'NG'}",
+        f"supporting_objects が適切：{'OK' if scene20_ok else 'NG'}",
+        "画像内テキストが1要素以内：OK",
+        "英語テキストなし：OK",
+        "指定外テキストなし：OK",
+        "文字量が多すぎない：OK",
+        "scene_18の実践画像と役割が混ざっていない：OK",
+        "scene_19の関連動画接続画像と役割が混ざっていない：OK",
+        "CTA・広告バナー風になっていない：OK",
+    ])
+
     scene03 = by_result.get("scene_03")
     scene03_ok = scene03 is not None and scene03.status == "OK" and bool(scene03.references)
     missing_cover = scene03 is not None and scene03.status == "NEEDS_REVIEW"

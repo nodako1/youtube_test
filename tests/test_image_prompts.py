@@ -422,3 +422,25 @@ def test_scene_18_prompt_extracts_practice_structure_from_current_script():
     assert "Visual structure:" in scene_18["final_prompt"]
     assert "It must not become a generic office scene or a simple desk-working image" in scene_18["final_prompt"]
     assert "avoid turning the image into a closing or recap scene" in scene_18["final_prompt"]
+
+
+def test_scene_20_prompt_builds_warm_closing_from_current_script():
+    assets = generate_fallback_assets("本のメモ", "テスト本")
+    scene_20 = json.loads(assets.image_prompts)[19]
+
+    assert scene_20["fixed_role"] == "動画全体を温かく締めるクロージングシーン"
+    assert scene_20["final_message_label"]
+    assert scene_20["closing_emotion"] in {"warm", "serene", "appreciative", "hopeful", "reflective"}
+    assert scene_20["viewer_aftertaste_label"]
+    assert scene_20["closing_type"] in {"gentle_finish", "learning_takeaway", "next_book_invitation", "quiet_reflection", "warm_thank_you"}
+    assert scene_20["visual_structure"] in {"closing_book", "quiet_desk", "window_light", "hand_and_book", "home_office_wide", "calm_tabletop"}
+    assert scene_20["supporting_objects"]
+    assert len(scene_20["exact_text_elements"]) == 1
+    assert len(scene_20["exact_text_elements"][0]) <= 16
+    assert "Final message:" in scene_20["final_prompt"]
+    assert "Closing emotion:" in scene_20["final_prompt"]
+    assert "Viewer aftertaste:" in scene_20["final_prompt"]
+    assert "Closing type:" in scene_20["final_prompt"]
+    assert "Visual structure:" in scene_20["final_prompt"]
+    assert "It must not become a recap scene, a practical work scene, a related-video promotion, or a CTA banner" in scene_20["final_prompt"]
+    assert "avoid CTA wording" in scene_20["final_prompt"]
