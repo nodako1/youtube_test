@@ -106,25 +106,45 @@ def render_titles(titles: Any) -> str:
 
 
 def render_schedule(schedule: Any) -> str:
+    expected_times = ["0:00", "2:00", "4:00", "6:00", "8:00"]
+    expected_prefixes = ["本日のテーマ：", "ポイント①：", "ポイント②：", "ポイント③：", "まとめ："]
+
     if isinstance(schedule, str):
-        body = schedule.rstrip()
+        raw_lines = [line.strip() for line in schedule.splitlines() if line.strip()]
+        if len(raw_lines) != 5:
+            raise ValueError("タイムスケジュールは必ず5行である必要があります")
+        lines = raw_lines
     elif isinstance(schedule, list):
+        if len(schedule) != 5:
+            raise ValueError("タイムスケジュールは必ず5行である必要があります")
         lines = []
-        for item in schedule:
+        for index, (expected_time, item) in enumerate(zip(expected_times, schedule)):
             if isinstance(item, str):
-                lines.append(item)
+                topic = item.strip()
+                for candidate_time in expected_times:
+                    topic = re.sub(rf"^{re.escape(candidate_time)}\s+", "", topic).strip()
             elif isinstance(item, dict):
-                time = item.get("time") or item.get("timestamp") or item.get("start") or ""
-                topic = item.get("topic") or item.get("title") or item.get("content") or item.get("description") or ""
-                lines.append(f"{time} {topic}".strip())
+                topic = str(
+                    item.get("topic")
+                    or item.get("title")
+                    or item.get("content")
+                    or item.get("description")
+                    or ""
+                ).strip()
             else:
                 raise ValueError(f"Unexpected schedule item type: {type(item).__name__}")
-        body = "\n".join(lines).rstrip()
+            if not topic:
+                topic = expected_prefixes[index] + "〇〇〇〇"
+            lines.append(f"{expected_time} {topic}")
     elif isinstance(schedule, dict):
-        body = "\n".join(f"{key} {value}".strip() for key, value in schedule.items()).rstrip()
+        lines = []
+        for index, expected_time in enumerate(expected_times):
+            value = schedule.get(expected_time) or schedule.get(str(index)) or schedule.get(str(index + 1)) or ""
+            topic = str(value).strip() or expected_prefixes[index] + "〇〇〇〇"
+            lines.append(f"{expected_time} {topic}")
     else:
         raise ValueError(f"Unexpected schedule type: {type(schedule).__name__}")
-    return "## タイムスケジュール\n\n" + body + "\n"
+    return "## タイムスケジュール\n\n" + "\n".join(lines) + "\n"
 
 
 def render_description(description: Any) -> str:
@@ -139,16 +159,19 @@ def render_description(description: Any) -> str:
 
 def render_comment(comment: Any) -> str:
     if isinstance(comment, str):
-        body = comment.rstrip()
+        lines = [line.strip() for line in comment.splitlines() if line.strip()]
     elif isinstance(comment, list):
         if not all(isinstance(item, str) for item in comment):
             raise ValueError("Unexpected comment item type: non-string")
-        body = "\n".join(comment).rstrip()
+        lines = [item.strip() for item in comment if item.strip()]
     elif isinstance(comment, dict):
-        body = "\n".join(str(value) for value in comment.values()).rstrip()
+        lines = [str(value).strip() for value in comment.values() if str(value).strip()]
     else:
         raise ValueError(f"Unexpected comment type: {type(comment).__name__}")
-    return "## コメント\n\n" + body + "\n"
+    if len(lines) != 3:
+        raise ValueError("コメントは必ず3行である必要があります")
+    lines[2] = "もし似たような経験があれば、ぜひコメント欄で教えてください。"
+    return "## コメント\n\n" + "\n".join(lines) + "\n"
 
 
 def render_image_prompts(image_prompts: Any) -> str:
