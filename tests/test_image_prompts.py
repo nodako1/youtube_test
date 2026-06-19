@@ -233,3 +233,24 @@ def test_scene_09_fallback_prompt_introduces_key_point_2_dynamically():
     assert "avoid repeating the Scene 08 CTA composition or Scene 05 Key Point 1 composition" in scene_09["final_prompt"]
     assert "two business people in conversation" not in scene_09["final_prompt"]
     assert "shift of perspective" not in scene_09["final_prompt"]
+
+def test_scene_10_fallback_prompt_concretizes_key_point_2_dynamically():
+    assets = generate_fallback_assets("本のメモ", "否定しない言い換え事典")
+    prompts = json.loads(assets.image_prompts)
+    scene_10 = prompts[9]
+
+    assert scene_10["scene"] == 10
+    assert scene_10["fixed_role"] == "重要ポイント②の具体化"
+    assert scene_10["point_2_label"]
+    assert scene_10["scene_10_core_message"]
+    assert scene_10["example_label"]
+    assert scene_10["application_label"]
+    assert scene_10["result_label"]
+    assert scene_10["visual_structure"] in {"before_after", "step_demo", "example_scene", "comparison", "action_map", "framework_demo"}
+    assert len(scene_10["exact_text_elements"]) <= 3
+    assert "Use only the following Japanese text elements exactly as written" in scene_10["final_prompt"]
+    assert "Do not create a generic cause-and-effect flowchart unless the current script actually requires it" in scene_10["final_prompt"]
+    assert "avoid generic split-screen flowcharts" in scene_10["final_prompt"]
+    assert "avoid generic business people" in scene_10["final_prompt"]
+    assert "avoid repeating the Scene 09 composition" in scene_10["final_prompt"]
+    assert "Watercolor style split-screen showing cause and effect flowchart alongside business people" not in scene_10["final_prompt"]

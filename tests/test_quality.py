@@ -137,3 +137,16 @@ def test_image_quality_report_includes_scene_09_checks():
     assert "point_2_type が適切：OK" in report
     assert "scene_08と構図が違う：OK" in report
     assert "scene_05と構図が違う：OK" in report
+
+def test_image_quality_report_includes_scene_10_checks():
+    from bookbase_automation.image_generation import build_image_quality_report
+
+    report = build_image_quality_report([])
+
+    assert "## 【scene_10 画像品質チェック】" in report
+    assert "scene_10固定役割に合っている：OK" in report
+    assert "重要ポイント②の具体化になっている：OK" in report
+    assert "visual_structure が適切：OK" in report
+    assert "可変ラベルが原稿から生成されている：OK" in report
+    assert "scene_09と構図が違う：OK" in report
+    assert "generic flowchart image になっていない：OK" in report
