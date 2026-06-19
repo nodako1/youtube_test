@@ -136,3 +136,28 @@ def test_composite_scene_03_book_cover_preserves_16_9_output(tmp_path: Path):
     rendered = Image.open(output)
 
     assert rendered.size == (1536, 864)
+
+
+def test_scene_06_fallback_prompt_explains_key_point_1_mechanism():
+    assets = generate_fallback_assets("本のメモ", "否定しない言い換え事典")
+    prompts = json.loads(assets.image_prompts)
+    scene_06 = prompts[5]
+
+    assert scene_06["scene"] == 6
+    assert scene_06["fixed_role"] == "重要ポイント①の理由・背景・仕組み説明"
+    assert scene_06["scene_role"] == "重要ポイント①の理由・背景・仕組み説明"
+    assert scene_06["point_1_label"]
+    assert scene_06["scene_06_core_message"]
+    assert scene_06["visual_structure"] in {
+        "cause_to_effect",
+        "before_after",
+        "hidden_mechanism",
+        "obstacle_and_solution",
+        "contrast",
+    }
+    assert 1 <= len(scene_06["exact_text_elements"]) <= 3
+    assert all(len(label) <= 15 for label in scene_06["exact_text_elements"])
+    assert "Use only the following Japanese text elements exactly as written" in scene_06["final_prompt"]
+    assert "Do not create a generic business person image" in scene_06["final_prompt"]
+    assert "avoid generic emotional icons" in scene_06["final_prompt"]
+    assert "Watercolor illustration of a business person with emotional expression icons" not in scene_06["final_prompt"]

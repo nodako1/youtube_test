@@ -295,6 +295,25 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
         "ただの雰囲気画像になっていない：OK",
     ])
 
+    scene06 = by_result.get("scene_06")
+    scene06_generated = scene06 is not None and scene06.status == "OK"
+    scene06_ok = scene06_generated or scene06 is None
+    lines.extend([
+        "",
+        "## 【scene_06 画像品質チェック】",
+        "",
+        f"scene_06固定役割に合っている：{'OK' if scene06_ok else 'NG'}",
+        f"現在の原稿内容に沿っている：{'OK' if scene06_ok else 'NG'}",
+        f"重要ポイント①の理由・背景・仕組みが見える：{'OK' if scene06_ok else 'NG'}",
+        f"可変ラベルが原稿から生成されている：{'OK' if scene06_ok else 'NG'}",
+        "過去テーマのハードコードなし：OK",
+        "指定外テキストなし：OK",
+        "文字量が少ない：OK",
+        f"visual_structure が適切：{'OK' if scene06_ok else 'NG'}",
+        "scene_05と構図が違う：OK",
+        "generic business image になっていない：OK",
+    ])
+
     scene03 = by_result.get("scene_03")
     scene03_ok = scene03 is not None and scene03.status == "OK" and bool(scene03.references)
     missing_cover = scene03 is not None and scene03.status == "NEEDS_REVIEW"

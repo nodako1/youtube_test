@@ -51,6 +51,7 @@ def build_image_context(script: str, book_title: str, asset_checks: list[AssetCh
     scene3 = _scene_body(script, 3)
     scene4 = _scene_body(script, 4)
     scene5 = _scene_body(script, 5)
+    scene6 = _scene_body(script, 6)
     options = {letter: _short_label(value, f"選択肢{letter}", 18) for letter, value in re.findall(r"([ABC])\.\s*([^ABC。]+)", scene1)}
     correct = (re.search(r"正解は\s*([ABC])", scene2) or re.search(r"正解は([ABC])", scene2))
     point_matches = re.findall(r"[①②③](.*?)(?:、|。|です|$)", scene4)
@@ -79,6 +80,7 @@ def build_image_context(script: str, book_title: str, asset_checks: list[AssetCh
             {"index": 2, "label": labels[1], "core_message": labels[1]},
             {"index": 3, "label": labels[2], "core_message": labels[2]},
         ],
+        "scene_bodies": {"scene_05": scene5, "scene_06": scene6},
         "assets": {
             "book_cover": _asset_path(asset_checks, "scene_03_current_book_cover"),
             "author_reference": _asset_path(asset_checks, "scene_04_author_reference"),
@@ -127,6 +129,82 @@ def _scene_05_structured_prompt(context: dict[str, object]) -> dict[str, object]
     metaphor = "a visual metaphor derived from Key Point 1, such as a clear first step, spotlight, doorway, map, or focused desk motif"
     final_prompt = f"Create a video-insert image. Style: {_COMMON_STYLE_FOR_SCHEMA}. This is Scene 05: begin Key Point 1 and make the first important message clear at a glance. One image, one message, different composition from Scene 04. Visual metaphor: {metaphor}. {TEXT_LOCK_INSTRUCTION}:\n{_text_block(elements)}\nAvoid fixed wording from any specific book; derive labels from image_context.json."
     return {"scene": 5, "scene_role": "重要ポイント①の導入", "core_message": str(point["core_message"]), "exact_text_elements": elements, "composition": "重要ポイント①にズームインする単一メッセージ構図", "visual_motifs": ["最初の一歩", "スポットライト", "カード", "余白"], "style": _COMMON_STYLE_FOR_SCHEMA, "negative_rules": ["scene_04と同じ構図にしない", "固定テーマ語句を使わない", "長文を入れない"], "variation_key": "key-point-1-introduction", "final_prompt": final_prompt}
+
+
+def _select_scene_06_visual_structure(scene6_body: str) -> str:
+    if re.search(r"前|後|変化|変わ|改善|すると|できると", scene6_body):
+        return "before_after"
+    if re.search(r"仕組み|構造|内側|心理|感情|判断|習慣|思考|前提", scene6_body):
+        return "hidden_mechanism"
+    if re.search(r"障壁|詰ま|妨げ|阻害|壁|解決|取り除", scene6_body):
+        return "obstacle_and_solution"
+    if re.search(r"一方|逆に|対比|違い|ではなく|より", scene6_body):
+        return "contrast"
+    return "cause_to_effect"
+
+
+def _scene_06_composition(visual_structure: str) -> str:
+    mapping = {
+        "cause_to_effect": "左から右へ、理由・仕組み・結果が自然に流れる構図。3つの短いカードを細い線でつなぎ、scene_05の導入カード構図とは違う因果の流れを見せる。",
+        "before_after": "左側に変化前、右側に変化後を置き、中央に背景や仕組みを示す小さな橋を配置する。scene_05のズームイン構図を繰り返さない。",
+        "hidden_mechanism": "表面上の仕事場面の背後に、内側の仕組みを示す半透明カードや線を配置する。人物だけに頼らず、見えない構造を主役にする。",
+        "obstacle_and_solution": "左に詰まりや障害、中央に背景の仕組み、右に開けた結果を置く。机や付箋だけの雰囲気画像にしない。",
+        "contrast": "左側に一般的な見方、右側に本書が示す視点を並べる。中央に視点の切り替わりを示す余白を置く。",
+    }
+    return mapping.get(visual_structure, mapping["cause_to_effect"])
+
+
+def _scene_06_structured_prompt(context: dict[str, object]) -> dict[str, object]:
+    point = context["three_key_points"][0]
+    scene_bodies = context.get("scene_bodies", {})
+    scene6_body = str(scene_bodies.get("scene_06", "")) if isinstance(scene_bodies, dict) else ""
+    point_1_label = str(point["label"])
+    core_message = _short_label(scene6_body or str(point["core_message"]), point_1_label, 28)
+    reason_label = _short_label(re.split(r"。|、", scene6_body)[0] if scene6_body else core_message, "理由", 12)
+    mechanism_source = re.search(r"(仕組み|構造|背景|前提|感情|事実|原因|材料|視点).{0,12}", scene6_body)
+    mechanism_label = _short_label(mechanism_source.group(0) if mechanism_source else core_message, "仕組み", 12)
+    effect_source = re.search(r"(進め|見え|変わ|減|強ま|選び|続け|つなが).{0,12}", scene6_body)
+    effect_label = _short_label(effect_source.group(0) if effect_source else str(point["core_message"]), "影響", 12)
+    elements = []
+    for label in [reason_label, mechanism_label, effect_label]:
+        if label and label not in elements:
+            elements.append(label[:15])
+    elements = elements[:3]
+    while len(elements) < 3:
+        fallback = ["理由", "仕組み", "影響"][len(elements)]
+        if fallback not in elements:
+            elements.append(fallback)
+    visual_structure = _select_scene_06_visual_structure(scene6_body)
+    visual_metaphor = "current-script-derived mechanism diagram: layered cards, subtle connecting lines, and a visual metaphor matching Key Point 1 without using any previous-book topic words"
+    composition = _scene_06_composition(visual_structure)
+    motifs = ["理由カード", "仕組みカード", "結果カード", "細い接続線", "半透明レイヤー"]
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+
+This is Scene 06. Its fixed role is to explain the reason, background, or mechanism behind Key Point 1. The image should visually clarify why the first key point matters, based on the current script. Do not create a generic business person image. Do not hard-code any topic from a previous book. Build the visual message from the current script only.
+
+Current Key Point 1:
+{point_1_label}
+
+Current Scene 06 core message:
+{core_message}
+
+{TEXT_LOCK_INSTRUCTION}:
+{_text_block(elements)}
+
+Visual structure:
+{visual_structure}
+
+Visual metaphor:
+{visual_metaphor}
+
+Composition:
+{composition}
+
+Visual motifs:
+{', '.join(motifs)}
+
+Keep the image clean and easy to understand at a glance. Use minimal text only. Do not place long script text. Avoid clutter, avoid generic emotional icons, avoid a generic desk-only scene, avoid over-explaining, and avoid repeating the Scene 05 composition."""
+    return {"scene": 6, "fixed_role": "重要ポイント①の理由・背景・仕組み説明", "scene_role": "重要ポイント①の理由・背景・仕組み説明", "point_1_label": point_1_label, "core_message": core_message, "scene_06_core_message": core_message, "reason_label": elements[0], "mechanism_label": elements[1], "effect_label": elements[2], "visual_metaphor": visual_metaphor, "visual_structure": visual_structure, "exact_text_elements": elements, "composition": composition, "visual_motifs": motifs, "style": _COMMON_STYLE_FOR_SCHEMA, "negative_rules": ["特定の本の語句を固定しない", "過去テーマの語句を使い回さない", "generic emotional iconsを使わない", "ただのビジネス人物イラストにしない", "scene_05と同じ構図にしない", "文字を増やしすぎない"], "variation_key": f"scene-06-{visual_structure}-key-point-1-mechanism", "final_prompt": final_prompt}
 
 
 @dataclass(frozen=True)
@@ -609,6 +687,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
     scene_03_prompt = _scene_03_structured_prompt(context) if scene == 3 else None
     scene_04_prompt = _scene_04_structured_prompt(context) if scene == 4 else None
     scene_05_prompt = _scene_05_structured_prompt(context) if scene == 5 else None
+    scene_06_prompt = _scene_06_structured_prompt(context) if scene == 6 else None
     meta = _image_block_metadata(scene)
     composition_by_point = {
         "重要ポイント1": "仕事机、ノート、タスク、時計を使い、土台・入口・最初の気づきが伝わる構図",
@@ -654,9 +733,15 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
     elif scene_05_prompt:
         purpose = str(scene_05_prompt["scene_role"])
         text = " / ".join(scene_05_prompt["exact_text_elements"])
-        differentiation = "scene_04の著者＋3ポイント構図から、重要ポイント①の対話心理イメージへズームインする"
+        differentiation = "scene_04の著者＋3ポイント構図から、重要ポイント①の導入メッセージへズームインする"
         prompt = str(scene_05_prompt["final_prompt"])
         recommended_composition = str(scene_05_prompt["composition"])
+    elif scene_06_prompt:
+        purpose = str(scene_06_prompt["scene_role"])
+        text = " / ".join(scene_06_prompt["exact_text_elements"])
+        differentiation = "scene_05の重要ポイント①導入から、理由・背景・仕組みが見える図解構図へ変える"
+        prompt = str(scene_06_prompt["final_prompt"])
+        recommended_composition = str(scene_06_prompt["composition"])
     else:
         recommended_composition = composition_by_point[point]
         prompt = (
@@ -680,20 +765,21 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         "使用画像": used_image,
         "入力画像チェック": asset_note,
         "needs_review": bool((scene == 3 and used_image == "なし") or (asset_check and asset_check.status == "MISSING" and scene in {19}) or scene in {11, 15}),
-        "最終プロンプト": prompt + (f", reference image: {used_image}, asset note: {asset_note}" if scene not in {2, 3, 4, 5} else ""),
+        "最終プロンプト": prompt + (f", reference image: {used_image}, asset note: {asset_note}" if scene not in {2, 3, 4, 5, 6} else ""),
         "scene": scene,
         "prompt": prompt,
-        "scene_role": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt)["scene_role"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt) else meta["ブロック内での役割"],
-        "core_message": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt)["core_message"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt) else "現在のシーン原稿から最も重要な要点を1つだけ抽出する",
-        "exact_text_elements": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt)["exact_text_elements"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt) else [text],
-        "composition": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt)["composition"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt) else recommended_composition,
-        "visual_motifs": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt)["visual_motifs"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt) else [recommended_composition],
-        "style": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt)["style"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt) else _COMMON_STYLE_FOR_SCHEMA,
-        "negative_rules": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt)["negative_rules"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt) else ["長文を入れない", "指定外の文字を入れない", "前後シーンと同じ構図にしない"],
+        "scene_role": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt)["scene_role"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt) else meta["ブロック内での役割"],
+        "core_message": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt)["core_message"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt) else "現在のシーン原稿から最も重要な要点を1つだけ抽出する",
+        "exact_text_elements": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt)["exact_text_elements"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt) else [text],
+        "composition": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt)["composition"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt) else recommended_composition,
+        "visual_motifs": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt)["visual_motifs"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt) else [recommended_composition],
+        "style": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt)["style"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt) else _COMMON_STYLE_FOR_SCHEMA,
+        "negative_rules": (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt)["negative_rules"] if (scene_01_prompt or scene_02_prompt or scene_03_prompt or scene_04_prompt or scene_05_prompt or scene_06_prompt) else ["長文を入れない", "指定外の文字を入れない", "前後シーンと同じ構図にしない"],
         "variation_key": scene_02_prompt["variation_key"] if scene_02_prompt else differentiation,
         "final_prompt": prompt,
         **({"reference_image_required": scene_03_prompt["reference_image_required"], "reference_image_path": scene_03_prompt["reference_image_path"], "post_process": scene_03_prompt["post_process"]} if scene_03_prompt else {}),
         **({"reference_image_required": scene_04_prompt["reference_image_required"], "reference_image_path": scene_04_prompt["reference_image_path"], "reference_image_usage": scene_04_prompt["reference_image_usage"]} if scene_04_prompt else {}),
+        **({"fixed_role": scene_06_prompt["fixed_role"], "point_1_label": scene_06_prompt["point_1_label"], "scene_06_core_message": scene_06_prompt["scene_06_core_message"], "reason_label": scene_06_prompt["reason_label"], "mechanism_label": scene_06_prompt["mechanism_label"], "effect_label": scene_06_prompt["effect_label"], "visual_metaphor": scene_06_prompt["visual_metaphor"], "visual_structure": scene_06_prompt["visual_structure"]} if scene_06_prompt else {}),
     }
 
 def _fit_scene(text: str, *, min_chars: int = 180, max_chars: int = 220) -> str:
@@ -799,6 +885,14 @@ def _bookbase_assets_json_schema() -> dict[str, object]:
         "negative_rules": {"type": "array", "items": {"type": "string"}},
         "variation_key": {"type": "string"},
         "final_prompt": {"type": "string"},
+        "fixed_role": {"type": "string"},
+        "point_1_label": {"type": "string"},
+        "scene_06_core_message": {"type": "string"},
+        "reason_label": {"type": "string"},
+        "mechanism_label": {"type": "string"},
+        "effect_label": {"type": "string"},
+        "visual_metaphor": {"type": "string"},
+        "visual_structure": {"type": "string", "enum": ["cause_to_effect", "before_after", "hidden_mechanism", "obstacle_and_solution", "contrast"]},
     }
     return {
         "type": "object",
@@ -946,7 +1040,7 @@ scenesは必ず20件の配列にし、各要素はscene_number（1〜20の整数
 titlesはpattern_a/pattern_b/pattern_cの構造化JSON、scheduleはtime/topicの配列、descriptionはtext/countの構造化JSON、commentは3行の配列で返してください。metadataは空のオブジェクトで構いません（Python側でMarkdownに整形します）。
 thumbnail_commentsはPattern A/B/Cの方向性・コメント・狙い・出力ファイル名・使用画像・needs_reviewを含めてください。
 image_promptsは20件の配列にし、各要素に「シーン番号」「所属ブロック」「ブロックの役割」「重要ポイント番号」「ブロック内での役割」「前ブロックからの理解の流れ」「このシーンで伝える要点」「画像の目的」「推奨構図」「画面内テキスト」「前後画像との差別化」「使用画像」「入力画像チェック」「needs_review」「最終プロンプト」を必ず含めてください。
-画像生成前提として、内部で image_context.json 相当の book_title, author_name, current_theme, quiz, three_key_points, assets を原稿と入力画像チェックから抽出してください。scene_01〜scene_05は「固定役割」と「可変内容」を必ず分離し、具体的な正解文言、テーマ語句、ポイント語句、タイトル、著者名、book_cover/authorパスは毎回の原稿とinputから生成してください。恒久テンプレートに今回の本だけの言葉を固定しないでください。各sceneのexact_text_elementsを必ず原稿由来で作り、最終プロンプトには必ず次の英文を入れてください: Use only the following Japanese text elements exactly as written. Do not add any other Japanese or English text.
+画像生成前提として、内部で image_context.json 相当の book_title, author_name, current_theme, quiz, three_key_points, assets を原稿と入力画像チェックから抽出してください。scene_01〜scene_05は「固定役割」と「可変内容」を必ず分離し、具体的な正解文言、テーマ語句、ポイント語句、タイトル、著者名、book_cover/authorパスは毎回の原稿とinputから生成してください。scene_06の固定役割は「重要ポイント①の理由・背景・仕組み説明」です。scene_06ではscene_05の重要ポイント①とscene_06本文から、point_1_label, scene_06_core_message, reason_label, mechanism_label, effect_label, visual_metaphor, visual_structureを毎回抽出してください。visual_structureはcause_to_effect / before_after / hidden_mechanism / obstacle_and_solution / contrastから内容に合わせて1つ選び、構図に反映してください。scene_06のexact_text_elementsは原稿由来の短いラベル3つ以内、各15文字以内にし、特定の本や過去テーマの語句をテンプレートに固定しないでください。scene_06ではgeneric emotional icons、generic business person image、机・付箋・ノートだけの雰囲気画像、scene_05と同じ構図を禁止してください。恒久テンプレートに今回の本だけの言葉を固定しないでください。各sceneのexact_text_elementsを必ず原稿由来で作り、最終プロンプトには必ず次の英文を入れてください: Use only the following Japanese text elements exactly as written. Do not add any other Japanese or English text.
 scene_11とscene_15の人物参考画像はユーザー入力必須ではありません。scene_11は原稿生成後に重要ポイント②を補強する実在人物と確認済み実話を選び、人物名・概要・実話・重要ポイント②とのつながり・確認した出典・画像生成時の表現方針をresearch_scene_11にMarkdownで記録してください。
 scene_15は原稿生成後に重要ポイント③を補強する確認済み名言を選び、名言・発言者・概要・意味・重要ポイント③とのつながり・確認した出典・画像生成時の表現方針をresearch_scene_15にMarkdownで記録してください。
 出典確認できない実話や名言は断定せず、別候補に差し替えるかNEEDS_REVIEWを明記してください。人物画像が取得できない場合は顔を想像で描かず、シルエット・行動場面・名言カード・静物構図で代替してください。
