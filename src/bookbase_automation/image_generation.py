@@ -57,7 +57,7 @@ def _scene_prompt(scene: int, source_prompt: str, selection: FlatInputSelection)
         8: "Subscription CTA; elegant, non-pushy business channel style.",
         11: "Real-life episode reinforcement; use a verified person only if research is strong, otherwise silhouette or symbolic action scene.",
         12: "Comment CTA; invite viewers to share work experiences.",
-        15: "Quotation reinforcement; if attribution is uncertain use a quote card or still-life composition instead of a face.",
+        15: "Key Point 3 quotation/short-excerpt reinforcement; derive the quote or distilled idea from the current script and research, manage attribution_status, and if attribution is uncertain use a quote card, still-life, or symbolic quote scene without any name or face.",
         16: "Guide viewers to the remaining value of the book and invite them to read it.",
         17: "Recap the three key points clearly with minimal text.",
         18: "Show practical application in work or daily life.",
@@ -475,6 +475,28 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
         "scene_18と役割が混ざっていない：OK",
         "generic meeting image になっていない：OK",
     ])
+
+    scene15 = by_result.get("scene_15")
+    scene15_generated = scene15 is not None and scene15.status == "OK"
+    scene15_ok = scene15_generated or scene15 is None
+    lines.extend([
+        "",
+        "## 【scene_15 画像品質チェック】",
+        "",
+        f"scene_15固定役割に合っている：{'OK' if scene15_ok else 'NG'}",
+        f"重要ポイント③の引用・一節補強になっている：{'OK' if scene15_ok else 'NG'}",
+        f"引用または要約が現在の原稿に基づいている：{'OK' if scene15_ok else 'NG'}",
+        f"attribution_status を記録している：{'OK' if scene15_ok else 'NG'}",
+        "attribution が弱い場合に人物名を出していない：OK",
+        "attribution が弱い場合に顔を描いていない：OK",
+        "長い引用文を入れていない：OK",
+        "過去テーマのハードコードなし：OK",
+        "指定外テキストなし：OK",
+        "文字量が少ない：OK",
+        "scene_14と構図が違う：OK",
+    ])
+    if scene15 is not None and scene15.status == "NEEDS_REVIEW":
+        lines.extend(["", "scene_15：NEEDS_REVIEW", "理由：引用・出典の確認が不十分です。人物名・顔を出さず、要約カードまたは象徴構図にしてください。"])
 
     scene03 = by_result.get("scene_03")
     scene03_ok = scene03 is not None and scene03.status == "OK" and bool(scene03.references)

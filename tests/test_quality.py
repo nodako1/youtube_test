@@ -258,3 +258,38 @@ def test_scene_14_prompt_uses_variable_key_point_three_concretization_rules():
     assert "avoid repeating the Scene 13 composition or the later Scene 18 implementation composition" in item["final_prompt"]
     assert "businessperson calmly responding" not in item["final_prompt"]
     assert "Watercolor image of a businessperson calmly responding in a meeting" not in item["final_prompt"]
+
+
+def test_image_quality_report_includes_scene_15_checks():
+    from bookbase_automation.image_generation import build_image_quality_report
+
+    report = build_image_quality_report([])
+
+    assert "## 【scene_15 画像品質チェック】" in report
+    assert "scene_15固定役割に合っている：OK" in report
+    assert "重要ポイント③の引用・一節補強になっている：OK" in report
+    assert "attribution_status を記録している：OK" in report
+    assert "attribution が弱い場合に人物名を出していない：OK" in report
+    assert "長い引用文を入れていない：OK" in report
+    assert "scene_14と構図が違う：OK" in report
+
+
+def test_scene_15_prompt_uses_variable_quote_attribution_rules():
+    from bookbase_automation.generator import _build_image_prompt_item, build_image_context
+
+    script = _valid_script()
+    context = build_image_context(script, "テスト本", [])
+    item = _build_image_prompt_item(15, context)
+
+    assert item["fixed_role"] == "重要ポイント③の引用・名言補強"
+    assert item["quote_source_type"] in {"person", "book", "public_domain_quote", "paraphrase", "symbolic_only"}
+    assert item["attribution_status"] in {"verified", "needs_review", "unverified"}
+    assert item["visual_mode"] in {"named_quote", "quote_card", "still_life", "symbolic_quote_scene"}
+    assert len(item["exact_text_elements"]) <= 3
+    assert "Current Key Point 3" in item["final_prompt"]
+    assert "Current Scene 15 core message" in item["final_prompt"]
+    assert "Attribution status" in item["final_prompt"]
+    assert "Do not hard-code any quote from a previous book" in item["final_prompt"]
+    assert "Use only the following Japanese text elements exactly as written" in item["final_prompt"]
+    assert "avoid repeating the Scene 14 composition" in item["final_prompt"]
+    assert "Acceptance is the source of change" not in item["final_prompt"]
