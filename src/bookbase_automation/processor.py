@@ -6,7 +6,7 @@ from pathlib import Path
 from .assets import build_asset_report, check_input_assets
 from .config import AppConfig
 from .fs_utils import move_file, move_path, output_folder_name, slugify
-from .generator import AIResponseJSONParseError, generate_ai_assets, generate_fallback_assets
+from .generator import AIResponseJSONParseError, AIResponseValidationError, generate_ai_assets, generate_fallback_assets
 from .image_generation import build_image_quality_report, build_image_targets, generate_images, render_failed_images, render_prompts_markdown
 from .input_assets import build_flat_input_report, derive_book_slug, read_rtfd_zip_text, select_flat_inputs, status_for
 from .metadata import build_metadata_quality_report
@@ -116,7 +116,7 @@ def process_one(input_path: Path, config: AppConfig) -> Path:
     except Exception as exc:
         err_dir = config.error_dir / output_folder_name(processing_path)
         err_dir.mkdir(parents=True, exist_ok=True)
-        if not isinstance(exc, AIResponseJSONParseError):
+        if not isinstance(exc, (AIResponseJSONParseError, AIResponseValidationError)):
             (err_dir / "error_report.md").write_text(
                 "# エラーレポート\n\n"
                 f"対象ファイル: {processing_path.name}\n\n"
@@ -204,7 +204,7 @@ def process_flat_inputs(config: AppConfig) -> Path:
     except Exception as exc:
         err_dir = config.error_dir / f"{selection.run_date.isoformat()}_{book_slug}"
         err_dir.mkdir(parents=True, exist_ok=True)
-        if not isinstance(exc, AIResponseJSONParseError):
+        if not isinstance(exc, (AIResponseJSONParseError, AIResponseValidationError)):
             (err_dir / "error_report.md").write_text(
                 "# エラーレポート\n\n"
                 f"対象ファイル: {source_path.name if source_path else '未確定'}\n\n"

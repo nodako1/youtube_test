@@ -4,12 +4,17 @@ import json
 import os
 from pathlib import Path
 from dataclasses import dataclass
+from typing import Any
 
 from .assets import AssetCheck, asset_checks_by_scene
 
 
 class AIResponseJSONParseError(ValueError):
     """Raised when the OpenAI response cannot be parsed as one JSON object."""
+
+
+class AIResponseValidationError(ValueError):
+    """Raised when the OpenAI response JSON has an unexpected shape."""
 
 
 @dataclass(frozen=True)
@@ -23,6 +28,119 @@ class GeneratedAssets:
     image_prompts: str
     research_scene_11: str
     research_scene_15: str
+
+
+def _ensure_markdown_text(value: Any, field_name: str) -> str:
+    if isinstance(value, str):
+        return value.rstrip() + "\n"
+    raise ValueError(f"Unexpected {field_name} type: {type(value).__name__}")
+
+
+def render_titles(titles: Any) -> str:
+    if isinstance(titles, str):
+        return titles.rstrip() + "\n"
+    if isinstance(titles, dict):
+        pattern_a = titles.get("pattern_a") or titles.get("A") or ""
+        pattern_b = titles.get("pattern_b") or titles.get("B") or ""
+        pattern_c = titles.get("pattern_c") or titles.get("C") or ""
+        return (
+            "## タイトル案\n\n"
+            "Pattern A：脅し・損失回避型\n"
+            f"{pattern_a}\n\n"
+            "Pattern B：誘惑・ベネフィット型\n"
+            f"{pattern_b}\n\n"
+            "Pattern C：逆張り・好奇心型\n"
+            f"{pattern_c}\n"
+        )
+    raise ValueError(f"Unexpected titles type: {type(titles).__name__}")
+
+
+def render_schedule(schedule: Any) -> str:
+    if isinstance(schedule, str):
+        body = schedule.rstrip()
+    elif isinstance(schedule, list):
+        lines = []
+        for item in schedule:
+            if isinstance(item, str):
+                lines.append(item)
+            elif isinstance(item, dict):
+                time = item.get("time") or item.get("timestamp") or item.get("start") or ""
+                topic = item.get("topic") or item.get("title") or item.get("content") or item.get("description") or ""
+                lines.append(f"{time} {topic}".strip())
+            else:
+                raise ValueError(f"Unexpected schedule item type: {type(item).__name__}")
+        body = "\n".join(lines).rstrip()
+    elif isinstance(schedule, dict):
+        body = "\n".join(f"{key} {value}".strip() for key, value in schedule.items()).rstrip()
+    else:
+        raise ValueError(f"Unexpected schedule type: {type(schedule).__name__}")
+    return "## タイムスケジュール\n\n" + body + "\n"
+
+
+def render_description(description: Any) -> str:
+    if isinstance(description, str):
+        return description.rstrip() + "\n"
+    if isinstance(description, dict):
+        text = description.get("text") or description.get("description") or description.get("body") or ""
+        count = description.get("文字数") or description.get("count") or len(text)
+        return f"## 50文字説明\n\n{text}\n文字数：{count}文字\n"
+    raise ValueError(f"Unexpected description type: {type(description).__name__}")
+
+
+def render_comment(comment: Any) -> str:
+    if isinstance(comment, str):
+        body = comment.rstrip()
+    elif isinstance(comment, list):
+        if not all(isinstance(item, str) for item in comment):
+            raise ValueError("Unexpected comment item type: non-string")
+        body = "\n".join(comment).rstrip()
+    elif isinstance(comment, dict):
+        body = "\n".join(str(value) for value in comment.values()).rstrip()
+    else:
+        raise ValueError(f"Unexpected comment type: {type(comment).__name__}")
+    return "## コメント\n\n" + body + "\n"
+
+
+def render_image_prompts(image_prompts: Any) -> str:
+    if isinstance(image_prompts, str):
+        return image_prompts.rstrip() + "\n"
+    if isinstance(image_prompts, list):
+        return json.dumps(image_prompts, ensure_ascii=False, indent=2) + "\n"
+    raise ValueError(f"Unexpected image_prompts type: {type(image_prompts).__name__}")
+
+
+def render_metadata(data: dict[str, Any]) -> str:
+    metadata = data.get("metadata")
+    if isinstance(metadata, str) and metadata.strip():
+        return metadata.rstrip() + "\n"
+    if metadata is not None and not isinstance(metadata, dict):
+        raise ValueError(f"Unexpected metadata type: {type(metadata).__name__}")
+    source = {**data, **metadata} if isinstance(metadata, dict) else data
+    parts = ["# 投稿補助情報", "", render_titles(source.get("titles", data.get("titles"))).rstrip()]
+    if "schedule" in source:
+        parts.extend(["", render_schedule(source["schedule"]).rstrip()])
+    if "description" in source:
+        parts.extend(["", render_description(source["description"]).rstrip()])
+    if "comment" in source:
+        parts.extend(["", render_comment(source["comment"]).rstrip()])
+    return "\n".join(parts).rstrip() + "\n"
+
+
+def _write_ai_json_validation_error_report(error_dir: Path | None, message: str, data: Any) -> None:
+    if error_dir is None:
+        return
+    error_dir.mkdir(parents=True, exist_ok=True)
+    (error_dir / "error_report.md").write_text(
+        "\n".join([
+            "エラー種別：AI応答JSON型検証失敗",
+            f"原因：{message}",
+            "発生箇所：generator.py / generate_ai_assets / render_*",
+            "対応：AI出力JSON schemaとPython側のMarkdown整形処理の型を確認してください。",
+            "",
+        ]),
+        encoding="utf-8",
+    )
+    (error_dir / "parsed_ai_response.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _split_summary(source_text: str, scene_count: int = 20) -> list[str]:
@@ -383,11 +501,36 @@ def _bookbase_assets_json_schema() -> dict[str, object]:
         "additionalProperties": False,
         "properties": {
             "script": {"type": "string"},
-            "titles": {"type": "string"},
-            "description": {"type": "string"},
+            "titles": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "pattern_a": {"type": "string"},
+                    "pattern_b": {"type": "string"},
+                    "pattern_c": {"type": "string"},
+                },
+                "required": ["pattern_a", "pattern_b", "pattern_c"],
+            },
+            "schedule": {
+                "type": "array",
+                "minItems": 5,
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {"time": {"type": "string"}, "topic": {"type": "string"}},
+                    "required": ["time", "topic"],
+                },
+            },
+            "description": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {"text": {"type": "string"}, "count": {"type": "integer"}},
+                "required": ["text", "count"],
+            },
+            "comment": {"type": "array", "minItems": 3, "items": {"type": "string"}},
             "thumbnail_ideas": {"type": "string"},
             "thumbnail_comments": {"type": "string"},
-            "metadata": {"type": "string"},
+            "metadata": {"type": "object", "additionalProperties": False, "properties": {}},
             "image_prompts": {
                 "type": "array",
                 "minItems": 20,
@@ -405,7 +548,9 @@ def _bookbase_assets_json_schema() -> dict[str, object]:
         "required": [
             "script",
             "titles",
+            "schedule",
             "description",
+            "comment",
             "thumbnail_ideas",
             "thumbnail_comments",
             "metadata",
@@ -475,7 +620,7 @@ JSONの前後に説明文、Markdown、コードフェンス、複数JSONを付�
 script, titles, description, thumbnail_ideas, thumbnail_comments, metadata, image_prompts, research_scene_11, research_scene_15
 
 scriptは必ず【シーン1】〜【シーン20】形式にし、各シーンの本文はシーン内改行なしの1段落にしてください。
-metadataは「# 投稿補助情報」から始め、タイトル案、タイムスケジュール、50文字説明、コメントを必ず含めてください。
+titlesはpattern_a/pattern_b/pattern_cの構造化JSON、scheduleはtime/topicの配列、descriptionはtext/countの構造化JSON、commentは3行の配列で返してください。metadataは空のオブジェクトで構いません（Python側でMarkdownに整形します）。
 thumbnail_commentsはPattern A/B/Cの方向性・コメント・狙い・出力ファイル名・使用画像・needs_reviewを含めてください。
 image_promptsは20件の配列にし、各要素に「シーン番号」「所属ブロック」「ブロックの役割」「重要ポイント番号」「ブロック内での役割」「前ブロックからの理解の流れ」「このシーンで伝える要点」「画像の目的」「推奨構図」「画面内テキスト」「前後画像との差別化」「使用画像」「入力画像チェック」「needs_review」「最終プロンプト」を必ず含めてください。
 scene_11とscene_15の人物参考画像はユーザー入力必須ではありません。scene_11は原稿生成後に重要ポイント②を補強する実在人物と確認済み実話を選び、人物名・概要・実話・重要ポイント②とのつながり・確認した出典・画像生成時の表現方針をresearch_scene_11にMarkdownで記録してください。
@@ -501,16 +646,18 @@ scene_15は原稿生成後に重要ポイント③を補強する確認済み名
     except json.JSONDecodeError as exc:
         _write_ai_json_parse_error_report(error_dir, text)
         raise AIResponseJSONParseError("AI応答JSONパース失敗") from exc
-    return GeneratedAssets(
-        script=data["script"].rstrip() + "\n",
-        titles=data["titles"].rstrip() + "\n",
-        description=data["description"].rstrip() + "\n",
-        thumbnail_ideas=data["thumbnail_ideas"].rstrip() + "\n",
-        thumbnail_comments=data.get("thumbnail_comments", "").rstrip() + "\n",
-        metadata=data.get("metadata", "").rstrip() + "\n",
-        image_prompts=json.dumps(data["image_prompts"], ensure_ascii=False, indent=2) + "\n"
-        if not isinstance(data["image_prompts"], str)
-        else data["image_prompts"].rstrip() + "\n",
-        research_scene_11=data.get("research_scene_11", _build_research_scene_11()).rstrip() + "\n",
-        research_scene_15=data.get("research_scene_15", _build_research_scene_15()).rstrip() + "\n",
-    )
+    try:
+        return GeneratedAssets(
+            script=_ensure_markdown_text(data["script"], "script"),
+            titles=render_titles(data["titles"]),
+            description=render_description(data["description"]),
+            thumbnail_ideas=_ensure_markdown_text(data["thumbnail_ideas"], "thumbnail_ideas"),
+            thumbnail_comments=_ensure_markdown_text(data.get("thumbnail_comments", ""), "thumbnail_comments"),
+            metadata=render_metadata(data),
+            image_prompts=render_image_prompts(data["image_prompts"]),
+            research_scene_11=_ensure_markdown_text(data.get("research_scene_11", _build_research_scene_11()), "research_scene_11"),
+            research_scene_15=_ensure_markdown_text(data.get("research_scene_15", _build_research_scene_15()), "research_scene_15"),
+        )
+    except (KeyError, ValueError) as exc:
+        _write_ai_json_validation_error_report(error_dir, str(exc), data)
+        raise AIResponseValidationError("AI応答JSON型検証失敗") from exc
