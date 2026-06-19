@@ -17,6 +17,11 @@ def test_bookbase_assets_json_schema_requires_single_strict_object():
 
     assert schema["type"] == "object"
     assert schema["additionalProperties"] is False
+    assert "scenes" in schema["required"]
+    assert "script" not in schema["required"]
+    assert schema["properties"]["scenes"]["minItems"] == 20
+    assert schema["properties"]["scenes"]["maxItems"] == 20
+    assert schema["properties"]["scenes"]["items"]["properties"]["body"]["minLength"] == 180
     assert "image_prompts" in schema["required"]
     image_prompts = schema["properties"]["image_prompts"]
     assert image_prompts["minItems"] == 20
@@ -101,15 +106,16 @@ def test_ensure_markdown_text_accepts_structured_script_dict():
     rendered = _ensure_markdown_text(
         {
             "scenes": [
-                {"scene": 1, "text": "導入です。"},
-                {"scene": 2, "text": "結論です。"},
+                {"scene_number": index, "body": f"本文{index}です。"}
+                for index in range(1, 21)
             ]
         },
         "script",
     )
 
     assert "【シーン1】" in rendered
-    assert "導入です。" in rendered
+    assert "本文1です。" in rendered
+    assert "\n\n【シーン2】\n" in rendered
     assert rendered.endswith("\n")
 
 
@@ -119,3 +125,24 @@ def test_structured_optional_markdown_fields_are_rendered():
     assert "要点" in _ensure_markdown_text({"text": "要点"}, "thumbnail_ideas")
     assert "- 注意: 確認" in _ensure_markdown_text({"注意": "確認"}, "thumbnail_comments")
     assert render_image_prompts({"prompts": [{"scene": 1, "prompt": "desk"}]}).startswith("{")
+
+
+def test_render_script_from_scenes_enforces_bookbase_format():
+    from bookbase_automation.generator import render_script_from_scenes, validate_bookbase_script
+
+    scenes = [{"scene_number": index, "body": "あ" * 180} for index in range(1, 21)]
+    rendered = render_script_from_scenes(scenes)
+
+    assert rendered.startswith("【シーン1】\n")
+    assert "\n\n【シーン2】\n" in rendered
+    assert rendered.endswith("\n")
+    assert validate_bookbase_script(rendered) == []
+
+
+def test_validate_bookbase_script_reports_short_and_joined_scene():
+    from bookbase_automation.generator import validate_bookbase_script
+
+    errors = validate_bookbase_script("【シーン1】短い本文【シーン2】短い本文")
+
+    assert "シーン数：0個。20個ではありません" in errors
+    assert "見出しと本文が同じ行になっています" in errors
