@@ -225,13 +225,13 @@ def _build_metadata(book_name: str) -> str:
             "## タイトル案",
             "",
             "Pattern A：脅し・損失回避型",
-            f"【頑張るほど遠回り】{book_name}が教える仕事の整え方3選【評価を落とす前に】",
+            f"【角が立つ一言に注意】{book_name}で直すNG表現7選【信頼を削る前に】",
             "",
             "Pattern B：誘惑・ベネフィット型",
-            f"【仕事が軽くなる思考法】{book_name}を明日から使う3つのコツ【迷いが減る】",
+            f"【会議の返しがやわらぐ】{book_name}の言い換え10例【評価される伝え方へ】",
             "",
             "Pattern C：逆張り・好奇心型",
-            f"【考える前に整える】{book_name}で分かる意外な判断術【努力より順番】",
+            f"【正論ほど嫌われる？】{book_name}が教える否定しない話し方【まず受け止める技術】",
             "",
             "## タイムスケジュール",
             "",
@@ -498,9 +498,9 @@ def generate_fallback_assets(source_text: str, book_name: str, asset_checks: lis
     titles = "\n".join(
         [
             f"# タイトル案：{book_name}",
-            f"A. 【思考が整う】{book_name}を仕事に活かす方法",
-            f"B. 【迷いが減る】{book_name}が教える判断の作り方",
-            f"C. 【明日から実践】{book_name}の要点を20シーンで解説",
+            f"A. 【角が立つ一言に注意】{book_name}で直すNG表現7選【信頼を削る前に】",
+            f"B. 【会議の返しがやわらぐ】{book_name}の言い換え10例【評価される伝え方へ】",
+            f"C. 【正論ほど嫌われる？】{book_name}が教える否定しない話し方【まず受け止める技術】",
         ]
     ) + "\n"
     description = f"{book_name}の要点を仕事と日常で使える視点に絞り、明日から実践できる行動までわかりやすく丁寧に解説します。"

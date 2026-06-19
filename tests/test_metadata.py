@@ -23,6 +23,9 @@ def test_metadata_quality_report_passes_generated_metadata():
     report = build_metadata_quality_report(assets.metadata)
 
     assert "タイトル前後の【】：OK" in report
+    assert "タイトル弱いフックなし：OK" in report
+    assert "タイトルフック重複なし：OK" in report
+    assert "タイトル数字検討：OK" in report
     assert "タイムスケジュール5項目：OK" in report
     assert "タイムスケジュール時間固定：OK" in report
     assert "50文字説明 50〜60文字：OK" in report
