@@ -3,7 +3,7 @@ from __future__ import annotations
 import traceback
 from pathlib import Path
 
-from .assets import build_asset_report, check_input_assets
+from .assets import AssetCheck, build_asset_report, check_input_assets
 from .config import AppConfig
 from .fs_utils import move_file, move_path, output_folder_name, slugify
 from .generator import AIResponseJSONParseError, AIResponseValidationError, generate_ai_assets, generate_fallback_assets
@@ -99,6 +99,7 @@ def process_one(input_path: Path, config: AppConfig) -> Path:
         (out_dir / "04_thumbnail_ideas.md").write_text(assets.thumbnail_ideas, encoding="utf-8")
         (out_dir / "06_thumbnail_comments.md").write_text(assets.thumbnail_comments, encoding="utf-8")
         (out_dir / "05_image_prompts.json").write_text(assets.image_prompts, encoding="utf-8")
+        (out_dir / "image_context.json").write_text(assets.image_context, encoding="utf-8")
         research_dir = out_dir / "research"
         research_dir.mkdir(exist_ok=True)
         (research_dir / "scene_11_story_person.md").write_text(assets.research_scene_11, encoding="utf-8")
@@ -145,11 +146,20 @@ def _write_flat_outputs(out_dir: Path, source_text: str, assets) -> None:
     (out_dir / "legacy_description.md").write_text(assets.description, encoding="utf-8")
     (out_dir / "legacy_thumbnail_ideas.md").write_text(assets.thumbnail_ideas, encoding="utf-8")
     (out_dir / "00_input.txt").write_text(source_text, encoding="utf-8")
+    (out_dir / "image_context.json").write_text(assets.image_context, encoding="utf-8")
     research_dir = out_dir / "research"
     research_dir.mkdir(exist_ok=True)
     (research_dir / "scene_11_story_person.md").write_text(assets.research_scene_11, encoding="utf-8")
     (research_dir / "scene_15_quote_person.md").write_text(assets.research_scene_15, encoding="utf-8")
 
+
+
+def _flat_asset_checks(selection) -> list[AssetCheck]:
+    return [
+        AssetCheck(3, "scene_03_current_book_cover", "今回紹介する本のブックカバー", status_for(selection.current_book_covers), str(selection.current_book_cover) if selection.current_book_cover else None, "input/YYYYMMDD_book_cover.* から動的に取得"),
+        AssetCheck(4, "scene_04_author_reference", "著者イラスト作成用の参考画像", status_for(selection.current_authors, required=False), str(selection.current_author) if selection.current_author else None, "input/YYYYMMDD_author.* から動的に取得。なければ顔を想像しない", required=False),
+        AssetCheck(19, "scene_19_related_book_cover", "関連動画側の本のブックカバー", status_for(selection.related_book_covers), str(selection.related_book_cover) if selection.related_book_cover else None, "過去日付のbook_coverから動的に取得"),
+    ]
 
 def process_flat_inputs(config: AppConfig) -> Path:
     selection = select_flat_inputs(config.input_dir)
@@ -173,12 +183,12 @@ def process_flat_inputs(config: AppConfig) -> Path:
                 book_slug,
                 rules_text,
                 model=config.model,
-                asset_checks=[],
+                asset_checks=_flat_asset_checks(selection),
                 raw_response_path=out_dir / "debug" / "raw_ai_response.txt",
                 error_dir=config.error_dir / f"{selection.run_date.isoformat()}_{book_slug}",
             )
         elif config.allow_fallback:
-            assets = generate_fallback_assets(source_text, book_slug, [])
+            assets = generate_fallback_assets(source_text, book_slug, _flat_asset_checks(selection))
         else:
             raise RuntimeError("AI生成が無効です。本番実行では--use-aiを指定してください。動作確認のみ--allow-fallbackを使用できます。")
         targets = build_image_targets(out_dir, assets.image_prompts, selection, scene03_only=config.image_scene03_only)

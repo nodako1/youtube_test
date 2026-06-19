@@ -123,3 +123,23 @@ Codexは以下を毎回埋めること。
 - 前後画像と構図を被らせない。
 - Book Baseロゴを小さく自然に配置する。
 - サムネイルのように煽りすぎず、ナレーション理解を助ける補助ビジュアルにする。
+
+
+## 恒久ルール化メモ
+
+scene_01の固定役割は、オープニングの統計・ニュース・調査データ風クイズである。A/B/Cの選択肢を出し、答えは出さず、視聴者が自分ごととして考えられる問いにする。クイズのテーマ、問い、選択肢は現在の本・原稿から毎回抽出し、特定テーマの内容を恒久テンプレートに固定しない。
+
+```json
+{
+  "scene": 1,
+  "fixed_role": "オープニングの統計・ニュース・調査データ風クイズ",
+  "quiz_topic": "現在の本に合わせたクイズテーマ",
+  "quiz_question": "現在の本に合わせた短い問い",
+  "option_a": "選択肢A",
+  "option_b": "選択肢B",
+  "option_c": "選択肢C",
+  "do_not_reveal_answer": true
+}
+```
+
+Use only the following Japanese text elements exactly as written. Do not add any other Japanese or English text.
