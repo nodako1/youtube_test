@@ -44,7 +44,7 @@ def _valid_script() -> str:
 
 
 def test_quality_report_checks_latest_script_rules():
-    titles = "A. 【思考が変わる】タイトル\nB. 【人生が軽くなる】タイトル\nC. 【明日から使える】タイトル"
+    titles = "A. 【角が立つ一言に注意】タイトルで直すNG表現7選【信頼を削る前に】\nB. 【会議の返しがやわらぐ】タイトルの言い換え10例【評価される伝え方へ】\nC. 【正論ほど嫌われる？】タイトルが教える否定しない話し方【まず受け止める技術】"
     description = "この本の要点を仕事と日常で使える視点に絞り、明日から実践できる行動までわかりやすく丁寧に解説します。"
     prompts = json.dumps([_build_image_prompt_item(index) for index in range(1, 21)], ensure_ascii=False)
 
@@ -56,6 +56,9 @@ def test_quality_report_checks_latest_script_rules():
     assert "シーン17おさらい開始: OK" in report
     assert "シーン20締め固定文: OK" in report
     assert "タイトルの【】フック重複: OK" in report
+    assert "タイトル前後の【】: OK" in report
+    assert "タイトル弱いフックなし: OK" in report
+    assert "タイトル数字検討: OK" in report
     assert "画像プロンプト必須メタ情報: OK" in report
     assert "画像プロンプト所属ブロック: OK" in report
     assert "重要ポイント画像の理解の流れ: OK" in report
@@ -70,3 +73,15 @@ def test_quality_report_detects_duplicate_title_hooks():
     )
 
     assert "タイトルの【】フック重複: NG" in report
+
+
+def test_quality_report_detects_weak_and_one_sided_title_hooks():
+    report = build_quality_report(
+        "【シーン1】\n短い本文",
+        "A. 【知っておかないと損】タイトル\nB. 【会議の返しがやわらぐ】タイトルの言い換え10例【評価される伝え方へ】\nC. 【正論ほど嫌われる？】タイトルが教える否定しない話し方【まず受け止める技術】",
+        "",
+        "短い説明",
+    )
+
+    assert "タイトル前後の【】: NG" in report
+    assert "タイトル弱いフックなし: NG" in report
