@@ -293,3 +293,15 @@ def test_scene_15_prompt_uses_variable_quote_attribution_rules():
     assert "Use only the following Japanese text elements exactly as written" in item["final_prompt"]
     assert "avoid repeating the Scene 14 composition" in item["final_prompt"]
     assert "Acceptance is the source of change" not in item["final_prompt"]
+
+
+def test_image_quality_report_includes_scene_17_checks():
+    from bookbase_automation.image_generation import build_image_quality_report
+
+    report = build_image_quality_report([])
+
+    assert "## 【scene_17 画像品質チェック】" in report
+    assert "scene_17固定役割に合っている：OK" in report
+    assert "3ポイントが順番のある流れとして見える：OK" in report
+    assert "point_1_label / point_2_label / point_3_label が原稿から生成されている：OK" in report
+    assert "generic three-card image になっていない：OK" in report

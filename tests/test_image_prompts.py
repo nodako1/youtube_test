@@ -332,3 +332,22 @@ def test_scene_16_uses_real_cover_composite_when_cover_exists(tmp_path: Path):
 
     assert target_16.references == (cover,)
     assert "real_cover_composite" in target_16.prompt
+
+
+def test_scene_17_prompt_recaps_current_points_as_ordered_flow():
+    assets = generate_fallback_assets("本のメモ", "テスト本")
+    scene_17 = json.loads(assets.image_prompts)[16]
+
+    assert scene_17["fixed_role"] == "3つの重要ポイントの総整理・総評"
+    assert scene_17["point_relationship"] in {"sequential", "layered", "progressive", "compare_then_apply", "insight_to_action"}
+    assert scene_17["visual_structure"] in {"recap_flow", "three_step_path", "recap_cards", "summary_board", "ladder_progression"}
+    assert len(scene_17["exact_text_elements"]) == 4
+    assert scene_17["exact_text_elements"][0] in {"今回のまとめ", "3つのポイント"}
+    assert scene_17["exact_text_elements"][1].startswith("① ")
+    assert scene_17["exact_text_elements"][2].startswith("② ")
+    assert scene_17["exact_text_elements"][3].startswith("③ ")
+    assert "Point relationship" in scene_17["final_prompt"]
+    assert "Visual structure" in scene_17["final_prompt"]
+    assert "Do not create a generic three-card image without meaning" in scene_17["final_prompt"]
+    assert "Use only the following Japanese text elements exactly as written" in scene_17["final_prompt"]
+    assert "Points 1" not in scene_17["final_prompt"]

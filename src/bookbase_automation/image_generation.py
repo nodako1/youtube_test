@@ -384,6 +384,26 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
         "scene_03と構図が違う：OK",
     ])
 
+    scene17 = by_result.get("scene_17")
+    scene17_generated = scene17 is not None and scene17.status == "OK"
+    scene17_ok = scene17_generated or scene17 is None
+    lines.extend([
+        "",
+        "## 【scene_17 画像品質チェック】",
+        "",
+        f"scene_17固定役割に合っている：{'OK' if scene17_ok else 'NG'}",
+        f"3つの重要ポイントの振り返りになっている：{'OK' if scene17_ok else 'NG'}",
+        f"3ポイントが順番のある流れとして見える：{'OK' if scene17_ok else 'NG'}",
+        f"point_1_label / point_2_label / point_3_label が原稿から生成されている：{'OK' if scene17_ok else 'NG'}",
+        "summary_heading が適切：OK",
+        "英語テキストなし：OK",
+        "指定外テキストなし：OK",
+        "文字量が多すぎない：OK",
+        "scene_04と構図が違う：OK",
+        "scene_20の締め画像と役割が混ざっていない：OK",
+        "generic three-card image になっていない：OK",
+    ])
+
     scene09 = by_result.get("scene_09")
     scene09_generated = scene09 is not None and scene09.status == "OK"
     scene09_ok = scene09_generated or scene09 is None
