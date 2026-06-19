@@ -105,6 +105,23 @@ def test_image_quality_report_includes_thumbnail_b_benefit_checks():
     assert "visual_structure が設定されている：OK" in report
     assert "thumbnail_Aと役割が混ざっていない：OK" in report
 
+
+def test_image_quality_report_includes_thumbnail_c_curiosity_checks():
+    from bookbase_automation.image_generation import build_image_quality_report
+
+    report = build_image_quality_report([])
+
+    assert "## 【thumbnail_C_curiosity 画像品質チェック】" in report
+    assert "thumbnail_C_curiosity固定役割に合っている：OK" in report
+    assert "逆張り・好奇心訴求型サムネになっている：OK" in report
+    assert "意味のない奇抜サムネになっていない：OK" in report
+    assert "curiosity_trigger_label が定義されている：OK" in report
+    assert "contrarian_angle_label が定義されている：OK" in report
+    assert "curiosity_style が設定されている：OK" in report
+    assert "visual_structure が設定されている：OK" in report
+    assert "thumbnail_Aと役割が混ざっていない：OK" in report
+    assert "thumbnail_Bと役割が混ざっていない：OK" in report
+
 def test_image_quality_report_includes_scene_06_checks():
     from bookbase_automation.image_generation import build_image_quality_report
 

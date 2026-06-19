@@ -1273,8 +1273,14 @@ def _build_thumbnail_comments(book_name: str, cover_check: AssetCheck | None = N
         "",
         "Pattern C：",
         "方向性：逆張り・好奇心型",
+        "固定役割：逆張り・意外性・好奇心を刺激するBook BaseのYouTubeサムネイル",
         "コメント：考える前に整える",
-        f"狙い：{book_name}の主張を、普通の努力論とは違う意外性のある入口に変換する。",
+        "curiosity_trigger_label：考えるより先に整えるという一見矛盾した順序に、意味を知りたくなる知的な違和感",
+        "contrarian_angle_label：よく考えれば解決するという思い込みを少しずらす",
+        "curiosity_style：subtle_contradiction",
+        "visual_structure：unexpected_split_layout",
+        "exact_text_elements：考える前に整える（1要素のみ）",
+        f"狙い：{book_name}の主張を、普通の努力論とは違う意外性のある入口に変換し、危機感や直球ベネフィットではなく意味を知りたい好奇心で引く。",
         "出力ファイル名：thumbnail_C_curiosity.png",
         f"使用画像：{cover_path}",
         f"needs_review：{needs_review}",
@@ -1298,7 +1304,7 @@ def _build_thumbnail_ideas(book_name: str, cover_check: AssetCheck | None = None
     patterns = [
         ("Pattern A", "thumbnail_A_loss_aversion.png", "脅し・損失回避型", "その努力、遠回りです", "left large comment, right visible book cover, tense but elegant office desk background"),
         ("Pattern B", "thumbnail_B_benefit.png", "誘惑・ベネフィット型", "仕事が軽くなる思考法", "thumbnail pattern B benefit, fixed role: communicate the positive benefit viewers may gain from the book, benefit_trigger_label: work and thinking may become lighter and clearer, benefit_style: intelligent_simplicity, visual_structure: desk_layout_cover_focus, large current book cover as key visual, one exact Japanese text element only, bright aspirational desk layout, calm structured whitespace, avoid cheap self-help design and overhyped success imagery"),
-        ("Pattern C", "thumbnail_C_curiosity.png", "逆張り・好奇心型", "考える前に整える", "upper large comment, lower corner book cover, curiosity-driven tidy notes and soft contrast"),
+        ("Pattern C", "thumbnail_C_curiosity.png", "逆張り・好奇心型", "考える前に整える", "thumbnail pattern C contrarian curiosity, fixed role: trigger curiosity through an unexpected or slightly contrarian idea, curiosity_trigger_label: intellectual discomfort that makes viewers wonder why preparation comes before thinking, contrarian_angle_label: shift the assumption that thinking harder comes first, curiosity_style: subtle_contradiction, visual_structure: unexpected_split_layout, large current book cover as key visual, one exact Japanese text element only, curiosity-driven unexpected layout, calm structured whitespace, subtle intellectual surprise, avoid meaningless quirky design, cheap clickbait, warning tension, and straightforward benefit appeal"),
     ]
     lines = ["# サムネイル生成プロンプト", "", f"使用ブックカバー：{cover_path}", f"needs_review：{needs_review}", ""]
     for label, filename, direction, comment, layout in patterns:
