@@ -228,6 +228,31 @@ def _scene_rule_separation_lines(items: list[dict[str, object]]) -> list[str]:
         lines.append(f"検出語句：{', '.join(leaked)}")
     return lines
 
+
+def _scene_19_quality_lines(items: list[dict[str, object]]) -> list[str]:
+    by_scene = {int(item.get("シーン番号", item.get("scene", 0))): item for item in items if str(item.get("シーン番号", item.get("scene", ""))).isdigit()}
+    item = by_scene.get(19, {})
+    prompt = str(item.get("final_prompt") or item.get("最終プロンプト") or "")
+    exact = item.get("exact_text_elements") if isinstance(item.get("exact_text_elements"), list) else []
+    fixed_role = str(item.get("fixed_role") or item.get("scene_role") or "")
+    forbidden_cta = ["関連動画を見てください", "こちらもおすすめ", "クリック", "今すぐ見る"]
+    lines = ["", "【scene_19 画像品質チェック】", ""]
+    lines.append(f"scene_19固定役割に合っている：{'OK' if '現在の本と関連過去動画の本を自然につなぐ接続シーン' in fixed_role else 'NG'}")
+    lines.append(f"現在の本と関連過去動画の本をつなぐ画像になっている：{'OK' if item.get('current_book_label') and item.get('related_book_label') and 'two books connected naturally' in prompt else 'NG'}")
+    lines.append(f"単なる広告・CTA画像になっていない：{'OK' if not any(token in prompt for token in forbidden_cta) and 'advertisement-like' in prompt else 'NG'}")
+    lines.append(f"2冊の本の関係性が connection_reason として定義されている：{'OK' if item.get('connection_reason') else 'NG'}")
+    lines.append(f"connection_type が設定されている：{'OK' if item.get('connection_type') in {'same_theme', 'next_step', 'practical_extension', 'contrast_and_deepen', 'money_or_life_application'} else 'NG'}")
+    lines.append(f"visual_structure が設定されている：{'OK' if item.get('visual_structure') in {'book_bridge', 'light_path', 'flowing_pages', 'ribbon_connection', 'two_books_perspective'} else 'NG'}")
+    lines.append(f"参照画像が現在の本として扱われている：{'OK' if 'Use the reference image as the current book cover' in prompt and item.get('reference_image_path') else 'NG'}")
+    lines.append(f"過去動画側の本が省略されていない：{'OK' if item.get('related_book_cover_path') or 'related past-video book cover as the second book' in prompt else 'NG'}")
+    lines.append(f"画像内テキストが1要素以内：{'OK' if len(exact) <= 1 else 'NG'}")
+    lines.append(f"英語テキストなし：{'OK' if 'Do not add any other Japanese or English text' in prompt and 'Avoid clutter, avoid English text' in prompt else 'NG'}")
+    lines.append(f"指定外テキストなし：{'OK' if 'Use only the following Japanese text elements exactly as written' in prompt else 'NG'}")
+    lines.append(f"文字量が多すぎない：{'OK' if len(exact) <= 1 and all(len(str(text)) <= 15 for text in exact) else 'NG'}")
+    lines.append(f"scene_20の締め画像と役割が混ざっていない：{'OK' if 'Do not make it a closing or thank-you scene like Scene 20' in prompt or 'scene_20' in ''.join(map(str, item.get('negative_rules', []))) else 'NG'}")
+    lines.append(f"広告バナー風になっていない：{'OK' if 'clickbait banner' in prompt and not any(token in prompt for token in forbidden_cta) else 'NG'}")
+    return lines
+
 def _sentence_lengths(text: str) -> list[int]:
     parts = [part.strip() for part in re.split(r"[。！？]", text) if part.strip()]
     return [len(part) for part in parts]
@@ -410,6 +435,7 @@ def build_quality_report(script: str, titles: str, image_prompts: str, descripti
         lines.append(f"シーン{index}：{length}字 {status}")
     lines.extend(_style_quality_report_lines(script, source_text))
     lines.extend(_scene_rule_separation_lines(image_items))
+    lines.extend(_scene_19_quality_lines(image_items))
     lines.extend(["", "## 詳細チェック", ""])
     for result in results:
         lines.append(f"- {result.name}: {result.status}（{result.detail}）")
