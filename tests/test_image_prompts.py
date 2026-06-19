@@ -84,6 +84,25 @@ def test_scene_03_target_keeps_cover_reference_but_prompt_generates_background(t
     assert "Leave a clean, prominent empty space on the left side" in target.prompt
 
 
+def test_scene_04_prompt_uses_author_reference_only_when_available(tmp_path: Path):
+    from bookbase_automation.assets import AssetCheck
+
+    missing_assets = generate_fallback_assets("本のメモ", "否定しない言い換え事典")
+    missing_scene_04 = json.loads(missing_assets.image_prompts)[3]
+    assert missing_scene_04["scene"] == 4
+    assert missing_scene_04["exact_text_elements"] == ["著者紹介", "3つの重要ポイント", "①否定しない", "②伝わり方", "③実践フレーズ"]
+    assert "No author reference image is available" in missing_scene_04["final_prompt"]
+    assert "Do not imagine or invent the author face" in missing_scene_04["final_prompt"]
+    assert "refined silhouette or symbolic author figure" in missing_scene_04["final_prompt"]
+
+    check = AssetCheck(4, "scene_04_author_reference", "著者参考", "OK", "assets/scene_04_author_reference.jpg", "使用画像")
+    referenced_assets = generate_fallback_assets("本のメモ", "否定しない言い換え事典", [check])
+    referenced_scene_04 = json.loads(referenced_assets.image_prompts)[3]
+    assert referenced_scene_04["reference_image_path"] == "assets/scene_04_author_reference.jpg"
+    assert "stylized watercolor author illustration" in referenced_scene_04["final_prompt"]
+    assert "silhouette" not in referenced_scene_04["final_prompt"].lower()
+
+
 def test_composite_scene_03_book_cover_preserves_16_9_output(tmp_path: Path):
     import pytest
 

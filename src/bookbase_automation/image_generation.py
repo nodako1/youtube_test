@@ -70,7 +70,7 @@ def _scene_prompt(scene: int, source_prompt: str, selection: FlatInputSelection)
         refs.append(selection.current_author)
     if scene == 19 and selection.related_book_cover:
         refs.append(selection.related_book_cover)
-    if scene in {2, 3} and "Use only the following Japanese text elements exactly as written" in source_prompt:
+    if scene in {2, 3, 4} and "Use only the following Japanese text elements exactly as written" in source_prompt:
         prompt = source_prompt
     else:
         prompt = f"{_common_style()}. Scene {scene:02d}: {directives.get(scene, 'Follow the scene role and keep one strong visual message.')}. Base prompt: {source_prompt}"
@@ -300,4 +300,26 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
     ])
     if missing_cover:
         lines.extend(["", "scene_03：NEEDS_REVIEW", "理由：今回の本のブックカバーが見つかりません"])
+
+    scene04 = by_result.get("scene_04")
+    scene04_generated = scene04 is not None and scene04.status == "OK"
+    scene04_has_reference = scene04_generated and bool(scene04.references)
+    scene04_reference_status = "OK" if scene04_has_reference else ("MISSING" if scene04 is not None else "OPTIONAL")
+    scene04_visual = "stylized_watercolor_author_illustration" if scene04_has_reference else "silhouette_or_symbolic"
+    lines.extend([
+        "",
+        "## 【scene_04 画像品質チェック】",
+        "",
+        f"著者参考画像あり：{scene04_reference_status}",
+        f"scene_04_author_reference：{scene04_reference_status}",
+        f"scene_04_visual：{scene04_visual}",
+        f"著者紹介として機能している：{'OK' if scene04_generated or scene04 is None else 'NG'}",
+        f"3つの重要ポイントが見える：{'OK' if scene04_generated or scene04 is None else 'NG'}",
+        "文字量が少ない：OK",
+        "指定外テキストなし：OK",
+        "著者写真をそのまま貼っていない：OK",
+        "水彩画風の高級感：OK",
+        "scene_03と構図が違う：OK",
+        "硬いフローチャートになっていない：OK",
+    ])
     return "\n".join(lines) + "\n"

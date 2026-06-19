@@ -23,6 +23,9 @@ _COMMON_STYLE_FOR_SCHEMA = "16:9 landscape, watercolor illustration, premium cal
 
 SCENE_02_TEXT_ELEMENTS = ["正解はB", "相手が話しやすくなる", "否定しない言い換え"]
 SCENE_03_TEXT_ELEMENTS = ["今回の一冊", "言い方で関係は変わる"]
+SCENE_04_TEXT_ELEMENTS = ["著者紹介", "3つの重要ポイント", "①否定しない", "②伝わり方", "③実践フレーズ"]
+
+SCENE_04_COMPOSITION = "左側に著者の水彩画風イラストを配置し、右側に3つの小さなポイントカードを縦に並べる。カード同士は細いゴールドの線でゆるくつなぎ、scene_03の本中心構図とは変える。"
 
 SCENE_02_COMPOSITIONS = [
     "左側に大きな答えカード、右側に納得した表情の会社員、小さな会話アイコンを背景に配置する",
@@ -108,6 +111,57 @@ def _scene_03_structured_prompt(asset_check: AssetCheck | None = None) -> dict[s
             "add_shadow": True,
             "add_light_border": True,
         },
+        "final_prompt": final_prompt,
+    }
+
+
+def _scene_04_structured_prompt(asset_check: AssetCheck | None = None) -> dict[str, object]:
+    reference_path = asset_check.path if asset_check and asset_check.path else "/home/runner/work/youtube_test/youtube_test/input/20260619_author.jpg"
+    has_reference = bool(asset_check and asset_check.path)
+    author_visual = "stylized watercolor author illustration" if has_reference else "refined silhouette or symbolic author figure"
+    reference_guidance = (
+        "The author reference image is available. Use it only as a reference to create a stylized watercolor author illustration. "
+        "Do not paste the photo directly. Do not make the portrait overly realistic. "
+    ) if has_reference else (
+        "No author reference image is available. Do not imagine or invent the author face. Use a refined silhouette, a symbolic author figure, books, a pen, and three point cards instead. "
+    )
+    final_prompt = (
+        "Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. "
+        "Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white "
+        "and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.\n\n"
+        "This is Scene 04. Its role is to introduce the author and present the three key points of the video as a simple roadmap. "
+        "The image should feel like a calm transition from the book introduction into the main explanation. It should communicate "
+        "that the viewer will learn the content through three clear points.\n\n"
+        f"{reference_guidance}Keep it elegant, gentle, and suitable for a Japanese business book summary video.\n\n"
+        "Use only the following Japanese text elements exactly as written. Do not add any other Japanese or English text:\n"
+        "1. 著者紹介\n"
+        "2. 3つの重要ポイント\n"
+        "3. ①否定しない\n"
+        "4. ②伝わり方\n"
+        "5. ③実践フレーズ\n\n"
+        f"Composition: {SCENE_04_COMPOSITION}\n\n"
+        "Visual motifs:\n"
+        f"- {author_visual}\n"
+        "- three small point cards\n"
+        "- subtle connecting lines\n"
+        "- book or notebook motif\n"
+        "- soft desk or study background\n"
+        "- teal and gold accents\n"
+        "- enough whitespace\n\n"
+        "Keep the text minimal and readable. Do not place long script text. Avoid clutter, avoid a rigid business flowchart, "
+        "avoid a thumbnail-like design, and avoid repeating the Scene 03 book-cover-centered composition."
+    )
+    return {
+        "scene": 4,
+        "scene_role": "著者紹介と3つの重要ポイント提示",
+        "reference_image_required": False,
+        "reference_image_path": reference_path,
+        "reference_image_usage": "著者参考画像がある場合のみ、水彩画風の著者イラスト生成に使用する。写真をそのまま貼り付けない。",
+        "core_message": "この著者の本から、3つの重要ポイントで学ぶことを伝える",
+        "exact_text_elements": SCENE_04_TEXT_ELEMENTS,
+        "composition": "左側に著者の水彩画風イラスト、右側に3つのポイントカードを配置する" if has_reference else "左側に著者シルエットまたは本・ペンの象徴モチーフ、右側に3つのポイントカードを配置する",
+        "visual_motifs": ["著者イラスト" if has_reference else "著者シルエット", "3つのポイントカード", "本", "ノート", "細い接続線", "淡い光"],
+        "negative_rules": ["写真をそのまま貼り付けない", "過度に写実的にしない", "顔を大きくしすぎない", "長文を入れない", "硬いフローチャートにしない", "scene_03と同じ本中心構図にしない"],
         "final_prompt": final_prompt,
     }
 
@@ -586,6 +640,7 @@ def _image_block_metadata(scene: int) -> dict[str, str]:
 def _build_image_prompt_item(scene: int, asset_check: AssetCheck | None = None) -> dict[str, object]:
     scene_02_prompt = _scene_02_structured_prompt() if scene == 2 else None
     scene_03_prompt = _scene_03_structured_prompt(asset_check) if scene == 3 else None
+    scene_04_prompt = _scene_04_structured_prompt(asset_check) if scene == 4 else None
     meta = _image_block_metadata(scene)
     composition_by_point = {
         "重要ポイント1": "仕事机、ノート、タスク、時計を使い、土台・入口・最初の気づきが伝わる構図",
@@ -616,6 +671,12 @@ def _build_image_prompt_item(scene: int, asset_check: AssetCheck | None = None) 
         prompt = str(scene_03_prompt["final_prompt"])
         recommended_composition = str(scene_03_prompt["composition"])
         asset_note = "実ブックカバーを後処理で合成します。AIには背景のみ生成させ、架空の表紙を作らせません。" if used_image != "なし" else "scene_03：NEEDS_REVIEW。理由：今回の本のブックカバーが見つかりません。架空の表紙は作らないでください。"
+    elif scene_04_prompt:
+        purpose = str(scene_04_prompt["scene_role"])
+        text = " / ".join(scene_04_prompt["exact_text_elements"])
+        differentiation = "scene_03のブックカバー中心構図から、著者イラスト＋3ポイントカードの見取り図へ変える"
+        prompt = str(scene_04_prompt["final_prompt"])
+        recommended_composition = str(scene_04_prompt["composition"])
     else:
         recommended_composition = composition_by_point[point]
         prompt = (
@@ -639,19 +700,20 @@ def _build_image_prompt_item(scene: int, asset_check: AssetCheck | None = None) 
         "使用画像": used_image,
         "入力画像チェック": asset_note,
         "needs_review": bool((scene == 3 and used_image == "なし") or (asset_check and asset_check.status == "MISSING" and scene in {19}) or scene in {11, 15}),
-        "最終プロンプト": prompt + (f", reference image: {used_image}, asset note: {asset_note}" if scene not in {2, 3} else ""),
+        "最終プロンプト": prompt + (f", reference image: {used_image}, asset note: {asset_note}" if scene not in {2, 3, 4} else ""),
         "scene": scene,
         "prompt": prompt,
-        "scene_role": (scene_02_prompt or scene_03_prompt)["scene_role"] if (scene_02_prompt or scene_03_prompt) else meta["ブロック内での役割"],
-        "core_message": (scene_02_prompt or scene_03_prompt)["core_message"] if (scene_02_prompt or scene_03_prompt) else "現在のシーン原稿から最も重要な要点を1つだけ抽出する",
-        "exact_text_elements": (scene_02_prompt or scene_03_prompt)["exact_text_elements"] if (scene_02_prompt or scene_03_prompt) else [text],
-        "composition": (scene_02_prompt or scene_03_prompt)["composition"] if (scene_02_prompt or scene_03_prompt) else recommended_composition,
-        "visual_motifs": (scene_02_prompt or scene_03_prompt)["visual_motifs"] if (scene_02_prompt or scene_03_prompt) else [recommended_composition],
+        "scene_role": (scene_02_prompt or scene_03_prompt or scene_04_prompt)["scene_role"] if (scene_02_prompt or scene_03_prompt or scene_04_prompt) else meta["ブロック内での役割"],
+        "core_message": (scene_02_prompt or scene_03_prompt or scene_04_prompt)["core_message"] if (scene_02_prompt or scene_03_prompt or scene_04_prompt) else "現在のシーン原稿から最も重要な要点を1つだけ抽出する",
+        "exact_text_elements": (scene_02_prompt or scene_03_prompt or scene_04_prompt)["exact_text_elements"] if (scene_02_prompt or scene_03_prompt or scene_04_prompt) else [text],
+        "composition": (scene_02_prompt or scene_03_prompt or scene_04_prompt)["composition"] if (scene_02_prompt or scene_03_prompt or scene_04_prompt) else recommended_composition,
+        "visual_motifs": (scene_02_prompt or scene_03_prompt or scene_04_prompt)["visual_motifs"] if (scene_02_prompt or scene_03_prompt or scene_04_prompt) else [recommended_composition],
         "style": scene_02_prompt["style"] if scene_02_prompt else _COMMON_STYLE_FOR_SCHEMA,
-        "negative_rules": (scene_02_prompt or scene_03_prompt)["negative_rules"] if (scene_02_prompt or scene_03_prompt) else ["長文を入れない", "指定外の文字を入れない", "前後シーンと同じ構図にしない"],
+        "negative_rules": (scene_02_prompt or scene_03_prompt or scene_04_prompt)["negative_rules"] if (scene_02_prompt or scene_03_prompt or scene_04_prompt) else ["長文を入れない", "指定外の文字を入れない", "前後シーンと同じ構図にしない"],
         "variation_key": scene_02_prompt["variation_key"] if scene_02_prompt else differentiation,
         "final_prompt": prompt,
         **({"reference_image_required": scene_03_prompt["reference_image_required"], "reference_image_path": scene_03_prompt["reference_image_path"], "post_process": scene_03_prompt["post_process"]} if scene_03_prompt else {}),
+        **({"reference_image_required": scene_04_prompt["reference_image_required"], "reference_image_path": scene_04_prompt["reference_image_path"], "reference_image_usage": scene_04_prompt["reference_image_usage"]} if scene_04_prompt else {}),
     }
 
 def _fit_scene(text: str, *, min_chars: int = 180, max_chars: int = 220) -> str:
