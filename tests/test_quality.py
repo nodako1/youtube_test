@@ -62,6 +62,9 @@ def test_quality_report_checks_latest_script_rules():
     assert "画像プロンプト必須メタ情報: OK" in report
     assert "画像プロンプト所属ブロック: OK" in report
     assert "重要ポイント画像の理解の流れ: OK" in report
+    assert "【文体品質チェック】" in report
+    assert "平均点：" in report
+    assert "判定：" in report
 
 
 def test_quality_report_detects_duplicate_title_hooks():

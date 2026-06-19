@@ -103,7 +103,7 @@ def process_one(input_path: Path, config: AppConfig) -> Path:
         research_dir.mkdir(exist_ok=True)
         (research_dir / "scene_11_story_person.md").write_text(assets.research_scene_11, encoding="utf-8")
         (research_dir / "scene_15_quote_person.md").write_text(assets.research_scene_15, encoding="utf-8")
-        report = build_quality_report(assets.script, assets.titles, assets.image_prompts, assets.description)
+        report = build_quality_report(assets.script, assets.titles, assets.image_prompts, assets.description, source_text)
         report += build_metadata_quality_report(assets.metadata)
         report += build_asset_report(asset_checks)
         report += _build_research_quality_report(assets.research_scene_11, assets.research_scene_15)
@@ -191,7 +191,7 @@ def process_flat_inputs(config: AppConfig) -> Path:
             image_report = build_image_quality_report(results, scene03_only=config.image_scene03_only)
         (out_dir / "failed_images.md").write_text(failed, encoding="utf-8")
         _write_flat_outputs(out_dir, source_text, assets)
-        report = build_quality_report(assets.script, assets.titles, assets.image_prompts, assets.description)
+        report = build_quality_report(assets.script, assets.titles, assets.image_prompts, assets.description, source_text)
         report += build_metadata_quality_report(assets.metadata)
         report += build_flat_input_report(selection)
         report += image_report
