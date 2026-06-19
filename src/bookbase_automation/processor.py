@@ -1,33 +1,70 @@
 from __future__ import annotations
 
+import shutil
 import traceback
 from pathlib import Path
 
-from .assets import build_asset_report, check_input_assets
+from .assets import (
+    InputBundle,
+    build_asset_report,
+    checks_for_bundle,
+    discover_input_bundle,
+    read_rtfd_zip_text,
+    validate_bundle,
+)
 from .config import AppConfig
-from .fs_utils import move_file, move_path, output_folder_name, slugify
+from .fs_utils import output_folder_name, slugify, unique_path
 from .generator import generate_ai_assets, generate_fallback_assets
 from .metadata import build_metadata_quality_report
 from .quality import build_quality_report
 from .rules import load_rules
 
 
-def discover_inputs(input_dir: Path) -> list[Path]:
-    txt_inputs = [path for path in input_dir.glob("*.txt") if path.is_file()]
-    folder_inputs = [path / "source.txt" for path in input_dir.iterdir() if path.is_dir() and (path / "source.txt").is_file()]
-    return sorted(txt_inputs + folder_inputs)
+def discover_inputs(input_dir: Path) -> list[InputBundle]:
+    bundle = discover_input_bundle(input_dir)
+    return [bundle] if bundle.has_candidates else []
 
 
-def _append_related_video_context(source_text: str, input_root: Path) -> str:
-    related_video = input_root / "scene_19_related_video.txt"
-    if not related_video.exists():
-        return source_text
-    return (
-        source_text.rstrip()
-        + "\n\n# scene_19_related_video.txt\n"
-        + related_video.read_text(encoding="utf-8").strip()
+def _move_files(files: tuple[Path, ...], dest_dir: Path) -> tuple[Path, ...]:
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    moved: list[Path] = []
+    for src in files:
+        dest = unique_path(dest_dir / src.name)
+        shutil.move(str(src), str(dest))
+        moved.append(dest)
+    return tuple(moved)
+
+
+def _bundle_with_moved_files(bundle: InputBundle, moved_root: Path, moved_files: tuple[Path, ...]) -> InputBundle:
+    by_name = {path.name: path for path in moved_files}
+
+    def moved(paths: tuple[Path, ...]) -> tuple[Path, ...]:
+        return tuple(by_name[path.name] for path in paths if path.name in by_name)
+
+    return InputBundle(
+        today_key=bundle.today_key,
+        output_slug=bundle.output_slug,
+        current_manuscripts=moved(bundle.current_manuscripts),
+        current_covers=moved(bundle.current_covers),
+        current_authors=moved(bundle.current_authors),
+        related_manuscripts=moved(bundle.related_manuscripts),
+        related_covers=moved(bundle.related_covers),
+        unknown_files=(),
+    )
+
+
+def _read_generation_input(bundle: InputBundle) -> tuple[str, str]:
+    current = bundle.current_manuscripts[0]
+    related = bundle.related_manuscripts[0]
+    current_text = read_rtfd_zip_text(current)
+    related_text = read_rtfd_zip_text(related)
+    generation_input = (
+        current_text.rstrip()
+        + "\n\n# scene_19_related_material\n"
+        + related_text.strip()
         + "\n"
     )
+    return current_text, generation_input
 
 
 def _research_status(markdown: str) -> str:
@@ -52,32 +89,31 @@ def _build_research_quality_report(research_scene_11: str, research_scene_15: st
     ) + "\n"
 
 
-def process_one(input_path: Path, config: AppConfig) -> Path:
-    if input_path.name == "source.txt" and input_path.parent.parent == config.input_dir:
-        processing_root = move_path(input_path.parent, config.processing_dir)
-        processing_path = processing_root / "source.txt"
-        input_root = processing_root
-        output_name_source = processing_root
-    else:
-        processing_path = move_file(input_path, config.processing_dir)
-        input_root = processing_path.parent
-        output_name_source = processing_path
-    book_name = slugify(output_name_source.stem)
-    is_folder_input = processing_path.name == "source.txt" and processing_path.parent.parent == config.processing_dir
-    asset_checks = check_input_assets(input_root, include_source_check=is_folder_input)
-    out_dir = config.output_dir / output_folder_name(output_name_source)
+def _archive_or_error_dir(base: Path, bundle: InputBundle) -> Path:
+    return base / output_folder_name(Path(f"{bundle.today_key}_{slugify(bundle.output_slug)}.txt"))
+
+
+def process_one(bundle: InputBundle, config: AppConfig) -> Path:
+    processing_root = unique_path(config.processing_dir / slugify(bundle.output_slug))
+    moved_files = _move_files(bundle.all_candidate_files, processing_root)
+    processing_bundle = _bundle_with_moved_files(bundle, processing_root, moved_files)
+    asset_checks = checks_for_bundle(processing_bundle)
+    out_dir = config.output_dir / output_folder_name(Path(f"{processing_bundle.today_key}_{slugify(processing_bundle.output_slug)}.txt"))
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "images").mkdir(exist_ok=True)
     (out_dir / "thumbnails").mkdir(exist_ok=True)
 
     try:
-        source_text = processing_path.read_text(encoding="utf-8")
-        generation_input = _append_related_video_context(source_text, input_root)
+        validation_errors = validate_bundle(processing_bundle)
+        if validation_errors:
+            raise RuntimeError("inputファイル判定でneeds_reviewです: " + "; ".join(validation_errors))
+
+        source_text, generation_input = _read_generation_input(processing_bundle)
         rules_text = load_rules(config.rules_dir)
         if config.use_ai:
-            assets = generate_ai_assets(generation_input, book_name, rules_text, model=config.model, asset_checks=asset_checks)
+            assets = generate_ai_assets(generation_input, slugify(processing_bundle.output_slug), rules_text, model=config.model, asset_checks=asset_checks)
         elif config.allow_fallback:
-            assets = generate_fallback_assets(generation_input, book_name, asset_checks)
+            assets = generate_fallback_assets(generation_input, slugify(processing_bundle.output_slug), asset_checks)
         else:
             raise RuntimeError("AI生成が無効です。本番実行では--use-aiを指定してください。動作確認のみ--allow-fallbackを使用できます。")
 
@@ -95,35 +131,33 @@ def process_one(input_path: Path, config: AppConfig) -> Path:
         (research_dir / "scene_15_quote_person.md").write_text(assets.research_scene_15, encoding="utf-8")
         report = build_quality_report(assets.script, assets.titles, assets.image_prompts, assets.description)
         report += build_metadata_quality_report(assets.metadata)
-        report += build_asset_report(asset_checks)
+        report += build_asset_report(asset_checks, today_key=processing_bundle.today_key)
         report += _build_research_quality_report(assets.research_scene_11, assets.research_scene_15)
         (out_dir / "quality_report.md").write_text(report, encoding="utf-8")
-        if processing_path.name == "source.txt" and processing_path.parent.parent == config.processing_dir:
-            move_path(processing_path.parent, config.archive_dir)
-        else:
-            move_file(processing_path, config.archive_dir)
+        archive_dir = _archive_or_error_dir(config.archive_dir, processing_bundle)
+        _move_files(tuple(processing_root.iterdir()), archive_dir)
+        processing_root.rmdir()
         return out_dir
     except Exception as exc:
-        err_dir = config.error_dir / output_folder_name(processing_path)
+        err_dir = _archive_or_error_dir(config.error_dir, processing_bundle)
         err_dir.mkdir(parents=True, exist_ok=True)
         (err_dir / "error_report.md").write_text(
             "# エラーレポート\n\n"
-            f"対象ファイル: {processing_path.name}\n\n"
+            f"対象入力: {processing_bundle.output_slug}\n\n"
             f"エラー内容: {exc}\n\n"
             "## 詳細\n\n"
             f"```\n{traceback.format_exc()}\n```\n",
             encoding="utf-8",
         )
-        if processing_path.name == "source.txt" and processing_path.parent.parent == config.processing_dir:
-            move_path(processing_path.parent, err_dir)
-        else:
-            move_file(processing_path, err_dir)
+        (err_dir / "quality_report.md").write_text(build_asset_report(asset_checks, today_key=processing_bundle.today_key), encoding="utf-8")
+        _move_files(tuple(processing_root.iterdir()), err_dir)
+        processing_root.rmdir()
         raise
 
 
 def run(config: AppConfig) -> list[Path]:
     config.ensure_directories()
     outputs: list[Path] = []
-    for input_path in discover_inputs(config.input_dir)[: config.max_files_per_run]:
-        outputs.append(process_one(input_path, config))
+    for bundle in discover_inputs(config.input_dir)[: config.max_files_per_run]:
+        outputs.append(process_one(bundle, config))
     return outputs

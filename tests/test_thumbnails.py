@@ -9,8 +9,8 @@ def test_thumbnail_outputs_include_three_patterns_and_cover_reference():
             key="scene_03_current_book_cover",
             purpose="今回紹介する本のブックカバー",
             status="OK",
-            path="assets/scene_03_current_book_cover.png",
-            note="使用画像：assets/scene_03_current_book_cover.png",
+            path="20260619_book_cover.webp",
+            note="使用画像：20260619_book_cover.webp",
         )
     ]
 
@@ -23,7 +23,7 @@ def test_thumbnail_outputs_include_three_patterns_and_cover_reference():
     assert "脅し・損失回避型" in assets.thumbnail_comments
     assert "誘惑・ベネフィット型" in assets.thumbnail_comments
     assert "逆張り・好奇心型" in assets.thumbnail_comments
-    assert "assets/scene_03_current_book_cover.png" in assets.thumbnail_comments
+    assert "20260619_book_cover.webp" in assets.thumbnail_comments
 
 
 def test_thumbnail_outputs_mark_needs_review_without_cover():
