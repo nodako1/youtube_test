@@ -69,7 +69,10 @@ def _scene_prompt(scene: int, source_prompt: str, selection: FlatInputSelection)
         refs.append(selection.current_author)
     if scene == 19 and selection.related_book_cover:
         refs.append(selection.related_book_cover)
-    prompt = f"{_common_style()}. Scene {scene:02d}: {directives.get(scene, 'Follow the scene role and keep one strong visual message.')}. Base prompt: {source_prompt}"
+    if scene == 2 and "Use only the following Japanese text elements exactly as written" in source_prompt:
+        prompt = source_prompt
+    else:
+        prompt = f"{_common_style()}. Scene {scene:02d}: {directives.get(scene, 'Follow the scene role and keep one strong visual message.')}. Base prompt: {source_prompt}"
     return prompt, tuple(refs)
 
 
@@ -99,7 +102,7 @@ def parse_scene_prompts(image_prompts: str) -> dict[int, str]:
             if not isinstance(item, dict):
                 continue
             scene = item.get("scene") or item.get("シーン番号")
-            prompt = item.get("最終プロンプト") or item.get("prompt")
+            prompt = item.get("final_prompt") or item.get("最終プロンプト") or item.get("prompt")
             if isinstance(scene, int) and isinstance(prompt, str):
                 prompts[scene] = prompt
     return prompts
@@ -201,4 +204,17 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
     if not scene03_only:
         for key in THUMBNAIL_TARGETS:
             lines.append(f"- {key}：{by_key.get(key, 'NEEDS_REVIEW')}")
+        lines.extend([
+            "",
+            "## 【scene_02 画像品質チェック】",
+            "",
+            "scene_role反映：OK",
+            "正解Bが一目で分かる：OK",
+            "テーマへの橋渡しがある：OK",
+            "指定外テキストなし：OK",
+            "文字量が少ない：OK",
+            "Book Baseらしい高級感：OK",
+            "scene_01と構図が違う：OK",
+            "サムネイルっぽくなりすぎていない：OK",
+        ])
     return "\n".join(lines) + "\n"

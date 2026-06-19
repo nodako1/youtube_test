@@ -19,6 +19,49 @@ class AIResponseValidationError(ValueError):
     """Raised when the OpenAI response JSON has an unexpected shape."""
 
 
+_COMMON_STYLE_FOR_SCHEMA = "16:9 landscape, watercolor illustration, premium calm atmosphere, Japanese business book YouTube channel, soft cream white and beige background, teal and subtle gold accents, clean composition, enough whitespace, small natural Book Base logo, minimal concise Japanese text only, one clear message"
+
+SCENE_02_TEXT_ELEMENTS = ["正解はB", "相手が話しやすくなる", "否定しない言い換え"]
+
+SCENE_02_COMPOSITIONS = [
+    "左側に大きな答えカード、右側に納得した表情の会社員、小さな会話アイコンを背景に配置する",
+    "中央に「正解はB」のカードを置き、左にクイズの余韻、右にやわらかい会話のイメージを配置する",
+    "中央に正解カード、背景に2人の会話アイコン、右下に小さなキーワードカードを置く",
+]
+
+
+def _scene_02_structured_prompt() -> dict[str, object]:
+    composition = SCENE_02_COMPOSITIONS[0]
+    final_prompt = (
+        "Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. "
+        "Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white "
+        "and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively. "
+        "This is Scene 02. Its role is to reveal the answer to the opening quiz and naturally bridge into the main theme "
+        "of the video. The visual should clearly show that the correct answer is B, and that the result is that the other "
+        "person becomes easier to talk with. The mood should be a gentle “I see” moment, not a loud quiz-show reveal. "
+        "Use only the following Japanese text elements exactly as written. Do not add any other Japanese or English text: "
+        "1. 正解はB 2. 相手が話しやすくなる 3. 否定しない言い換え. "
+        f"Composition: {composition}. "
+        "Visual motifs: a clean answer card or panel, a calm Japanese office worker with a relieved positive expression, "
+        "simple conversation icon or speech bubbles, subtle arrow or light connecting the answer to the theme, enough "
+        "whitespace, premium watercolor texture. Keep the image clean and easy to understand at a glance. Use minimal text "
+        "only. Do not place long script text. Avoid clutter, avoid flashy game-show design, avoid thumbnail-like exaggeration, "
+        "and avoid repeating the Scene 01 composition."
+    )
+    return {
+        "scene": 2,
+        "scene_role": "クイズの正解発表とテーマへの橋渡し",
+        "core_message": "否定しない言い換えによって、相手が話しやすくなる",
+        "exact_text_elements": SCENE_02_TEXT_ELEMENTS,
+        "composition": composition,
+        "visual_motifs": ["答えカード", "会社員", "会話アイコン", "やわらかい矢印", "淡い光"],
+        "style": "16:9 landscape, watercolor illustration, premium calm atmosphere, Japanese business book YouTube channel, soft cream white and beige background, teal and subtle gold accents, clean composition, enough whitespace, small natural Book Base logo, minimal concise Japanese text only, one clear message",
+        "negative_rules": ["長文を入れない", "指定外の文字を入れない", "派手なクイズ番組風にしない", "scene_01と同じ構図にしない", "英語テキストを入れない", "サムネイルのような煽りデザインにしない"],
+        "variation_key": "answer-card-left_office-worker-right_theme-bridge",
+        "final_prompt": final_prompt,
+    }
+
+
 @dataclass(frozen=True)
 class GeneratedAssets:
     script: str
@@ -490,7 +533,8 @@ def _image_block_metadata(scene: int) -> dict[str, str]:
     }
 
 
-def _build_image_prompt_item(scene: int, asset_check: AssetCheck | None = None) -> dict[str, str | int]:
+def _build_image_prompt_item(scene: int, asset_check: AssetCheck | None = None) -> dict[str, object]:
+    scene_02_prompt = _scene_02_structured_prompt() if scene == 2 else None
     meta = _image_block_metadata(scene)
     composition_by_point = {
         "重要ポイント1": "仕事机、ノート、タスク、時計を使い、土台・入口・最初の気づきが伝わる構図",
@@ -508,12 +552,20 @@ def _build_image_prompt_item(scene: int, asset_check: AssetCheck | None = None) 
         asset_note = "scene_11の人物は原稿生成後に人物名と実話エピソードを確定し、出典確認できる場合のみ水彩画風イラストに反映します。人物画像未取得の場合は顔を想像で描かず、シルエットまたは行動場面で代替します。"
     elif scene == 15 and asset_check is None:
         asset_note = "scene_15の名言人物は原稿生成後に発言者・原文・文脈を確認し、誤引用リスクが低い場合のみ水彩画風イラストに反映します。人物画像未取得の場合は顔を想像で描かず、名言カードまたは静物構図で代替します。"
-    prompt = (
-        "16:9 watercolor illustration for a premium Japanese business book YouTube channel, "
-        "soft cream white beige teal and gold palette, small natural Book Base logo in the upper-right or lower-right, "
-        f"scene {scene}, {meta['所属ブロック']}, {meta['ブロック内での役割']}, "
-        f"{composition_by_point[point]}, no long text, one clear message, avoid repeating adjacent composition"
-    )
+    if scene_02_prompt:
+        purpose = str(scene_02_prompt["scene_role"])
+        text = " / ".join(scene_02_prompt["exact_text_elements"])
+        differentiation = str(scene_02_prompt["variation_key"])
+        prompt = str(scene_02_prompt["final_prompt"])
+        recommended_composition = str(scene_02_prompt["composition"])
+    else:
+        recommended_composition = composition_by_point[point]
+        prompt = (
+            "16:9 watercolor illustration for a premium Japanese business book YouTube channel, "
+            "soft cream white beige teal and gold palette, small natural Book Base logo in the upper-right or lower-right, "
+            f"scene {scene}, {meta['所属ブロック']}, {meta['ブロック内での役割']}, "
+            f"{recommended_composition}, no long text, one clear message, avoid repeating adjacent composition"
+        )
     return {
         "シーン番号": scene,
         "所属ブロック": meta["所属ブロック"],
@@ -523,15 +575,24 @@ def _build_image_prompt_item(scene: int, asset_check: AssetCheck | None = None) 
         "前ブロックからの理解の流れ": meta["前ブロックからの理解の流れ"],
         "このシーンで伝える要点": "現在のシーン原稿から最も重要な要点を1つだけ抽出する",
         "画像の目的": purpose,
-        "推奨構図": composition_by_point[point],
+        "推奨構図": recommended_composition,
         "画面内テキスト": text,
         "前後画像との差別化": differentiation,
         "使用画像": used_image,
         "入力画像チェック": asset_note,
         "needs_review": bool((asset_check and asset_check.status == "MISSING" and scene in {3, 19}) or scene in {11, 15}),
-        "最終プロンプト": prompt + f", reference image: {used_image}, asset note: {asset_note}",
+        "最終プロンプト": prompt + (f", reference image: {used_image}, asset note: {asset_note}" if scene != 2 else ""),
         "scene": scene,
         "prompt": prompt,
+        "scene_role": scene_02_prompt["scene_role"] if scene_02_prompt else meta["ブロック内での役割"],
+        "core_message": scene_02_prompt["core_message"] if scene_02_prompt else "現在のシーン原稿から最も重要な要点を1つだけ抽出する",
+        "exact_text_elements": scene_02_prompt["exact_text_elements"] if scene_02_prompt else [text],
+        "composition": scene_02_prompt["composition"] if scene_02_prompt else recommended_composition,
+        "visual_motifs": scene_02_prompt["visual_motifs"] if scene_02_prompt else [recommended_composition],
+        "style": scene_02_prompt["style"] if scene_02_prompt else _COMMON_STYLE_FOR_SCHEMA,
+        "negative_rules": scene_02_prompt["negative_rules"] if scene_02_prompt else ["長文を入れない", "指定外の文字を入れない", "前後シーンと同じ構図にしない"],
+        "variation_key": scene_02_prompt["variation_key"] if scene_02_prompt else differentiation,
+        "final_prompt": prompt,
     }
 
 def _fit_scene(text: str, *, min_chars: int = 180, max_chars: int = 220) -> str:
@@ -626,6 +687,15 @@ def _bookbase_assets_json_schema() -> dict[str, object]:
         "入力画像チェック": {"type": "string"},
         "needs_review": {"type": "boolean"},
         "最終プロンプト": {"type": "string"},
+        "scene_role": {"type": "string"},
+        "core_message": {"type": "string"},
+        "exact_text_elements": {"type": "array", "items": {"type": "string"}},
+        "composition": {"type": "string"},
+        "visual_motifs": {"type": "array", "items": {"type": "string"}},
+        "style": {"type": "string"},
+        "negative_rules": {"type": "array", "items": {"type": "string"}},
+        "variation_key": {"type": "string"},
+        "final_prompt": {"type": "string"},
     }
     return {
         "type": "object",
