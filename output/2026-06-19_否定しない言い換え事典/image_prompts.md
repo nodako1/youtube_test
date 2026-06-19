@@ -37,7 +37,27 @@
 - 参照画像：なし
 
 ```
-16:9 landscape, watercolor illustration, premium calm atmosphere for Japanese business book YouTube channel, cream white, beige, teal and subtle gold palette, minimal concise Japanese text only, one clear message, do not place long script text, vary composition from adjacent scenes, include a small natural Book Base logo. Scene 05: Follow the scene role and keep one strong visual message.. Base prompt: Watercolor scene of a business person at a desk looking thoughtful with sticky notes and a notebook, subtle cream and teal tones, calm atmosphere, Book Base logo small in corner.
+Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+
+This is Scene 05. Its role is to begin Key Point 1 and clearly introduce the idea that avoiding negation has a psychological effect. The image should show that when people are not immediately否定された, they become more open, less defensive, and more willing to listen. This is the opening image for the first major point, so it should feel clear, calm, and easy to understand at a glance.
+
+Use only the following Japanese text elements exactly as written. Do not add any other Japanese or English text:
+1. 重要ポイント①
+2. 否定しない心理効果
+3. 心が開きやすい
+
+Composition:
+中央に会話する2人の会社員を配置し、左側には少し緊張した閉じ気味の吹き出し、右側にはやわらかく開いた吹き出しを置いて、対話の空気が変わる様子を見せる。
+
+Visual motifs:
+- calm Japanese office worker or two office workers in conversation
+- gentle speech bubbles or conversation icons
+- visual contrast between tense communication and open communication
+- subtle arrows, light, or soft transition motifs
+- enough whitespace
+- premium watercolor texture
+
+Keep the image clean and easy to understand at a glance. Use minimal text only. Do not place long script text. Avoid clutter, avoid research-chart-heavy design, avoid a generic desk-only scene, and avoid repeating the Scene 04 composition.
 ```
 
 ## scene_06.png

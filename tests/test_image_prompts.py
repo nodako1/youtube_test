@@ -103,6 +103,20 @@ def test_scene_04_prompt_uses_author_reference_only_when_available(tmp_path: Pat
     assert "silhouette" not in referenced_scene_04["final_prompt"].lower()
 
 
+
+def test_scene_05_fallback_prompt_introduces_key_point_1_psychology():
+    assets = generate_fallback_assets("本のメモ", "否定しない言い換え事典")
+    prompts = json.loads(assets.image_prompts)
+    scene_05 = prompts[4]
+
+    assert scene_05["scene"] == 5
+    assert scene_05["scene_role"] == "重要ポイント①の導入。否定を避ける心理学的効果を示す"
+    assert scene_05["core_message"] == "否定を避けると、相手の心が閉じにくくなり、話を聞いてもらいやすくなる"
+    assert scene_05["exact_text_elements"] == ["重要ポイント①", "否定しない心理効果", "心が開きやすい"]
+    assert "Use only the following Japanese text elements exactly as written" in scene_05["final_prompt"]
+    assert "Watercolor scene of a business person at a desk" not in scene_05["final_prompt"]
+    assert "avoid a generic desk-only scene" in scene_05["final_prompt"]
+
 def test_composite_scene_03_book_cover_preserves_16_9_output(tmp_path: Path):
     import pytest
 
