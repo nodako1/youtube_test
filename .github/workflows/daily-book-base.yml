@@ -31,6 +31,7 @@ concurrency:
 
 jobs:
   generate:
+    timeout-minutes: 180
     runs-on: ubuntu-latest
     env:
       TZ: Asia/Tokyo
@@ -53,14 +54,38 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Define git retry helpers
+        run: |
+          cat > /tmp/bookbase_git_helpers.sh <<'EOF'
+          set -euo pipefail
+          commit_and_push_if_changed() {
+            local message="$1"
+            git status --short
+            if git diff --cached --quiet && git diff --quiet; then
+              echo "No changes to commit."
+              return 0
+            fi
+            git commit -m "$message" || true
+            for attempt in 1 2 3 4 5; do
+              git pull --rebase
+              if git push; then
+                return 0
+              fi
+              echo "git push failed; retry ${attempt}/5" >&2
+              sleep $((attempt * 5))
+            done
+            echo "git push failed after retries; artifacts will be uploaded by the always() step." >&2
+            return 1
+          }
+          EOF
       - name: Generate text assets and image prompts
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
+          source /tmp/bookbase_git_helpers.sh
           python -m bookbase_automation.cli --root . --use-ai --generate-assets-only
           git add input processing output archive error
-          git commit -m "Add generated Book Base text assets and image prompts" || true
-          git push || true
+          commit_and_push_if_changed "Add generated Book Base text assets and image prompts"
       - name: Find latest output directory
         id: output
         run: |
@@ -86,6 +111,7 @@ jobs:
             SCENES=$(echo "$IMAGE_SCENES" | tr ',' ' ')
           fi
           for SCENE in $SCENES; do
+            source /tmp/bookbase_git_helpers.sh
             CMD="python -m bookbase_automation.cli --root . --generate-images-only --output-dir '$OUTPUT_DIR' --image-scenes '$SCENE' --resume-images"
             if [ "$FORCE_IMAGES" = "true" ]; then
               CMD="$CMD --force-images"
@@ -93,8 +119,16 @@ jobs:
             echo "Running: $CMD"
             eval "$CMD" || true
             git add output
-            git commit -m "Add generated Book Base image scene_${SCENE}" || true
-            git push || true
+            commit_and_push_if_changed "Add generated Book Base image scene_${SCENE}" || true
           done
       - name: Verify generated image files
         run: python -m bookbase_automation.cli --root . --verify-images || true
+      - name: Upload partial artifacts on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: partial-bookbase-output
+          path: |
+            output
+            error
+            processing

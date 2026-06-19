@@ -57,6 +57,11 @@ def _call_with_retry(
     **kwargs: Any,
 ) -> Any:
     from openai import APIConnectionError, APIStatusError, APITimeoutError, RateLimitError
+    try:
+        from httpx import RemoteProtocolError
+    except ImportError:  # pragma: no cover - httpx is normally installed with openai
+        class RemoteProtocolError(Exception):
+            pass
 
     last_error: Exception | None = None
     had_error = False
@@ -76,7 +81,7 @@ def _call_with_retry(
                     )
                 )
             return result
-        except (APIConnectionError, APITimeoutError, RateLimitError) as exc:
+        except (APIConnectionError, APITimeoutError, RateLimitError, RemoteProtocolError) as exc:
             last_error = exc
             had_error = True
             print(
@@ -112,7 +117,7 @@ def _call_with_retry(
             OpenAIAPICallRecord(
                 target=target,
                 api_call=api_label,
-                attempts=max_attempts if _is_retryable_status(last_error) or type(last_error).__name__ in {"APIConnectionError", "APITimeoutError", "RateLimitError"} else 1,
+                attempts=max_attempts if _is_retryable_status(last_error) or type(last_error).__name__ in {"APIConnectionError", "APITimeoutError", "RateLimitError", "RemoteProtocolError"} else 1,
                 error_type=type(last_error).__name__,
                 message=str(last_error),
                 final_result="failed",
