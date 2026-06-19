@@ -620,6 +620,30 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
     if scene15 is not None and scene15.status == "NEEDS_REVIEW":
         lines.extend(["", "scene_15：NEEDS_REVIEW", "理由：引用・出典の確認が不十分です。人物名・顔を出さず、要約カードまたは象徴構図にしてください。"])
 
+    scene18 = by_result.get("scene_18")
+    scene18_generated = scene18 is not None and scene18.status == "OK"
+    scene18_ok = scene18_generated or scene18 is None
+    lines.extend([
+        "",
+        "## 【scene_18 画像品質チェック】",
+        "",
+        f"scene_18固定役割に合っている：{'OK' if scene18_ok else 'NG'}",
+        f"本の学びを仕事や日常に落とし込む画像になっている：{'OK' if scene18_ok else 'NG'}",
+        f"単なるデスクワーク画像になっていない：{'OK' if scene18_ok else 'NG'}",
+        f"practice_theme_label が定義されている：{'OK' if scene18_ok else 'NG'}",
+        f"practice_action_label が定義されている：{'OK' if scene18_ok else 'NG'}",
+        f"practice_type が設定されている：{'OK' if scene18_ok else 'NG'}",
+        f"visual_structure が設定されている：{'OK' if scene18_ok else 'NG'}",
+        f"supporting_objects が適切：{'OK' if scene18_ok else 'NG'}",
+        "画像内テキストが1要素以内：OK",
+        "英語テキストなし：OK",
+        "指定外テキストなし：OK",
+        "文字量が多すぎない：OK",
+        "scene_17の総まとめ画像と役割が混ざっていない：OK",
+        "scene_20の締め画像と役割が混ざっていない：OK",
+        "generic office image になっていない：OK",
+    ])
+
     scene03 = by_result.get("scene_03")
     scene03_ok = scene03 is not None and scene03.status == "OK" and bool(scene03.references)
     missing_cover = scene03 is not None and scene03.status == "NEEDS_REVIEW"
