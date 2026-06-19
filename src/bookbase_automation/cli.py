@@ -24,8 +24,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model", default="gpt-4.1-mini", help="OpenAI model for --use-ai")
     parser.add_argument("--verify-images", action="store_true", help="Verify generated scene PNG existence and 16:9 aspect ratio")
     parser.add_argument("--generate-images", action="store_true", help="Generate PNG image files with the OpenAI Images API")
+    parser.add_argument("--generate-assets-only", action="store_true", help="Generate and save script, metadata, and image prompts without calling the Images API")
+    parser.add_argument("--generate-images-only", action="store_true", help="Generate images from an existing output directory without regenerating text assets")
+    parser.add_argument("--output-dir", type=Path, help="Existing output/{date}_{book_slug} directory for --generate-images-only")
     parser.add_argument("--image-scenes", default="1-20", help="Scenes to generate or dry-run, e.g. 1-20, 17,18,19,20, or 19")
     parser.add_argument("--force-images", action="store_true", help="Regenerate and overwrite existing scene images")
+    parser.add_argument("--resume-images", action="store_true", help="Skip existing valid images that are marked OK in image_progress.json")
     parser.add_argument("--dry-run-images", action="store_true", help="Print final image prompts without calling the OpenAI Images API")
     parser.add_argument("--image-scene03-only", action="store_true", help="Only generate output images/scene_03.png for API smoke testing")
     parser.add_argument("--image-model", default="gpt-image-2", help="OpenAI image model for image generation/editing")
@@ -52,11 +56,15 @@ def main() -> int:
         allow_fallback=args.allow_fallback,
         model=args.model,
         generate_images=args.generate_images,
+        generate_assets_only=args.generate_assets_only,
+        generate_images_only=args.generate_images_only,
         image_scene03_only=args.image_scene03_only,
         image_model=args.image_model,
         image_scenes=args.image_scenes,
         force_images=args.force_images,
         dry_run_images=args.dry_run_images,
+        resume_images=args.resume_images,
+        images_output_dir=args.output_dir,
         target_date=args.target_date,
     )
     outputs = run(config)

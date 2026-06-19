@@ -154,3 +154,52 @@ def test_cli_options_keep_image_generation_and_dry_run_explicit():
     assert dry_run.generate_images is False
     assert dry_run.image_scenes == "17,18"
     assert generate.generate_images is True
+
+
+def test_generate_images_writes_progress_and_resume_skips_ok(monkeypatch, tmp_path):
+    images = install_mock_openai(monkeypatch)
+    out_dir = tmp_path / "out"
+    image_dir = out_dir / "images"
+    results = generate_images([target(image_dir)], progress_dir=out_dir)
+    assert results[0].status == "OK"
+    progress = __import__("json").loads((out_dir / "image_progress.json").read_text(encoding="utf-8"))
+    assert progress["scene_01"]["status"] == "OK"
+    assert progress["scene_01"]["aspect_ratio_ok"] is True
+
+    images.calls.clear()
+    skipped = generate_images([target(image_dir)], resume=True, progress_dir=out_dir)
+    assert skipped[0].status == "SKIPPED"
+    assert images.calls == []
+
+
+def test_generate_images_resume_regenerates_failed_scene(monkeypatch, tmp_path):
+    images = install_mock_openai(monkeypatch)
+    out_dir = tmp_path / "out"
+    image_dir = out_dir / "images"
+    image_dir.mkdir(parents=True)
+    (out_dir / "image_progress.json").write_text('{"scene_01":{"status":"FAILED","attempts":1}}\n', encoding="utf-8")
+    results = generate_images([target(image_dir)], resume=True, progress_dir=out_dir)
+    assert results[0].status == "OK"
+    assert images.calls
+
+
+def test_generate_images_force_replaces_only_after_valid_tmp(monkeypatch, tmp_path):
+    images = install_mock_openai(monkeypatch)
+    out_dir = tmp_path / "out"
+    image_dir = out_dir / "images"
+    image_dir.mkdir(parents=True)
+    output = image_dir / "scene_01.png"
+    Image.new("RGB", (1536, 864), (1, 2, 3)).save(output)
+    before = output.read_bytes()
+
+    def bad_generate(**kwargs):
+        images.calls.append(kwargs)
+        item = types.SimpleNamespace(b64_json=_png_b64(size=(1000, 1000)))
+        return types.SimpleNamespace(data=[item])
+
+    images.generate = bad_generate
+    images.edit = bad_generate
+    results = generate_images([target(image_dir)], force=True, progress_dir=out_dir)
+    assert results[0].status == "FAILED"
+    assert output.read_bytes() == before
+    assert not (image_dir / "scene_01.png.tmp").exists()

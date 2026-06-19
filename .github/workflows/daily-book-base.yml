@@ -10,9 +10,7 @@ on:
         required: false
         default: "true"
         type: choice
-        options:
-          - "true"
-          - "false"
+        options: ["true", "false"]
       image_scenes:
         description: "Scenes to generate images for, e.g. 1-20 or 17,18,19,20"
         required: false
@@ -22,9 +20,7 @@ on:
         required: false
         default: "false"
         type: choice
-        options:
-          - "true"
-          - "false"
+        options: ["true", "false"]
 
 permissions:
   contents: write
@@ -53,36 +49,52 @@ jobs:
             echo "OPENAI_API_KEY secret is required for production runs." >&2
             exit 1
           fi
-      - name: Generate assets
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Generate text assets and image prompts
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GENERATE_IMAGES: ${{ github.event_name == 'schedule' && 'true' || inputs.generate_images }}
+        run: |
+          python -m bookbase_automation.cli --root . --use-ai --generate-assets-only
+          git add input processing output archive error
+          git commit -m "Add generated Book Base text assets and image prompts" || true
+          git push || true
+      - name: Find latest output directory
+        id: output
+        run: |
+          OUTPUT_DIR=$(find output -mindepth 1 -maxdepth 1 -type d | sort | tail -n 1)
+          echo "output_dir=$OUTPUT_DIR" >> "$GITHUB_OUTPUT"
+      - name: Generate scene images with per-scene commits
+        if: ${{ github.event_name == 'schedule' || inputs.generate_images == 'true' }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           IMAGE_SCENES: ${{ github.event_name == 'schedule' && '1-20' || inputs.image_scenes }}
           FORCE_IMAGES: ${{ github.event_name == 'schedule' && 'false' || inputs.force_images }}
+          OUTPUT_DIR: ${{ steps.output.outputs.output_dir }}
         run: |
-          CMD="python -m bookbase_automation.cli --root . --use-ai"
-
-          if [ "$GENERATE_IMAGES" = "true" ]; then
-            CMD="$CMD --generate-images --image-scenes $IMAGE_SCENES"
+          if [ -z "$OUTPUT_DIR" ]; then
+            echo "No output directory found." >&2
+            exit 1
           fi
-
-          if [ "$FORCE_IMAGES" = "true" ]; then
-            CMD="$CMD --force-images"
-          fi
-
-          echo "Running: $CMD"
-          eval "$CMD"
-      - name: Verify generated image files
-        run: |
-          python -m bookbase_automation.cli --root . --verify-images || true
-      - name: Commit generated files
-        run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add input processing output archive error
-            git commit -m "Add generated Book Base assets"
-            git push
+          if echo "$IMAGE_SCENES" | grep -Eq '^[0-9]+-[0-9]+$'; then
+            START=${IMAGE_SCENES%-*}
+            END=${IMAGE_SCENES#*-}
+            SCENES=$(seq "$START" "$END")
           else
-            echo "No generated changes."
+            SCENES=$(echo "$IMAGE_SCENES" | tr ',' ' ')
           fi
+          for SCENE in $SCENES; do
+            CMD="python -m bookbase_automation.cli --root . --generate-images-only --output-dir '$OUTPUT_DIR' --image-scenes '$SCENE' --resume-images"
+            if [ "$FORCE_IMAGES" = "true" ]; then
+              CMD="$CMD --force-images"
+            fi
+            echo "Running: $CMD"
+            eval "$CMD" || true
+            git add output
+            git commit -m "Add generated Book Base image scene_${SCENE}" || true
+            git push || true
+          done
+      - name: Verify generated image files
+        run: python -m bookbase_automation.cli --root . --verify-images || true

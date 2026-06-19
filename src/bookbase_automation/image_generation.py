@@ -5,6 +5,8 @@ import io
 import json
 import os
 import time
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
@@ -445,6 +447,60 @@ def render_prompts_markdown(targets: list[ImageTarget]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+
+def load_image_progress(out_dir: Path) -> dict[str, Any]:
+    path = out_dir / "image_progress.json"
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except json.JSONDecodeError:
+        return {}
+
+
+def save_image_progress(out_dir: Path, progress: dict[str, Any]) -> None:
+    (out_dir / "image_progress.json").write_text(json.dumps(progress, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _now_iso() -> str:
+    return datetime.now(ZoneInfo("Asia/Tokyo")).isoformat(timespec="seconds")
+
+
+def _attempts(progress: dict[str, Any], key: str) -> int:
+    item = progress.get(key)
+    return int(item.get("attempts", 0)) if isinstance(item, dict) else 0
+
+
+def _progress_ok(progress: dict[str, Any], key: str, output_path: Path) -> bool:
+    item = progress.get(key)
+    if not isinstance(item, dict) or item.get("status") != "OK" or not item.get("aspect_ratio_ok"):
+        return False
+    exists_ok, _image_size, ratio_ok, _error = validate_png_16_9(output_path)
+    return exists_ok and ratio_ok
+
+
+def _progress_success(output_path: Path, image_size: tuple[int, int] | None, attempts: int) -> dict[str, Any]:
+    return {
+        "status": "OK",
+        "output_path": str(output_path),
+        "image_size": f"{image_size[0]}x{image_size[1]}" if image_size else "unknown",
+        "aspect_ratio_ok": True,
+        "completed_at": _now_iso(),
+        "attempts": attempts,
+    }
+
+
+def _progress_failed(output_path: Path, error: Exception | str, attempts: int) -> dict[str, Any]:
+    return {
+        "status": "FAILED",
+        "output_path": str(output_path),
+        "error_type": type(error).__name__ if isinstance(error, Exception) else "ValidationError",
+        "error": str(error),
+        "attempts": attempts,
+        "failed_at": _now_iso(),
+    }
+
 def _extract_b64(response: Any) -> str:
     data = response.data[0]
     b64 = getattr(data, "b64_json", None)
@@ -537,7 +593,7 @@ def validate_png_16_9(path: Path) -> tuple[bool, tuple[int, int] | None, bool, s
         return True, None, False, str(exc)
 
 
-def generate_images(targets: list[ImageTarget], *, model: str = "gpt-image-2", size: str = "1536x864", quality: str = "high", output_format: str = "png", force: bool = False) -> list[ImageResult]:
+def generate_images(targets: list[ImageTarget], *, model: str = "gpt-image-2", size: str = "1536x864", quality: str = "high", output_format: str = "png", force: bool = False, resume: bool = False, progress_dir: Path | None = None) -> list[ImageResult]:
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY が設定されていません。")
@@ -545,18 +601,26 @@ def generate_images(targets: list[ImageTarget], *, model: str = "gpt-image-2", s
 
     client = OpenAI(api_key=api_key, timeout=180.0, max_retries=5)
     results: list[ImageResult] = []
+    progress_root = progress_dir or (targets[0].output_dir.parent if targets else Path("."))
+    progress = load_image_progress(progress_root)
     for target in targets:
         target.output_dir.mkdir(parents=True, exist_ok=True)
         output_path = target.output_dir / target.filename
         api_records: list[OpenAIAPICallRecord] = []
         try:
-            if output_path.exists() and not force:
+            if output_path.exists() and not force and (not resume or _progress_ok(progress, target.key, output_path)):
                 exists_ok, image_size, ratio_ok, validation_error = validate_png_16_9(output_path)
-                results.append(ImageResult(target.key, target.filename, "SKIPPED", target.prompt, tuple(str(p) for p in target.references), validation_error, str(output_path), exists_ok, image_size, ratio_ok, False, True, target.scene is not None, "Use only the following Japanese text elements exactly as written" in target.prompt or "minimal concise Japanese text" in target.prompt))
-                continue
+                if resume and (not exists_ok or not ratio_ok):
+                    pass
+                else:
+                    results.append(ImageResult(target.key, target.filename, "SKIPPED", target.prompt, tuple(str(p) for p in target.references), validation_error, str(output_path), exists_ok, image_size, ratio_ok, False, True, target.scene is not None, "Use only the following Japanese text elements exactly as written" in target.prompt or "minimal concise Japanese text" in target.prompt))
+                    continue
             if target.scene == 3:
                 cover_path = target.references[0] if target.references else None
                 if cover_path is None or not cover_path.exists():
+                    attempts = _attempts(progress, target.key) + 1
+                    progress[target.key] = _progress_failed(output_path, "今回の本のブックカバーが見つかりません", attempts)
+                    save_image_progress(progress_root, progress)
                     results.append(ImageResult(target.key, target.filename, "NEEDS_REVIEW", target.prompt, tuple(str(p) for p in target.references), "今回の本のブックカバーが見つかりません", str(output_path), False, None, False, False, True, target.scene is not None, False))
                     continue
             generation_target = ImageTarget(target.key, target.filename, target.output_dir, target.prompt, (), target.scene) if target.scene in {3, 16} else target
@@ -567,11 +631,22 @@ def generate_images(targets: list[ImageTarget], *, model: str = "gpt-image-2", s
                 image_bytes = composite_scene03_book_cover(image_bytes, cover_path)
             if target.scene == 16 and target.references:
                 image_bytes = composite_scene16_book_cover(image_bytes, target.references[0])
-            output_path.write_bytes(image_bytes)
-            exists_ok, image_size, ratio_ok, validation_error = validate_png_16_9(output_path)
+            tmp_path = output_path.with_name(output_path.name + ".tmp")
+            tmp_path.write_bytes(image_bytes)
+            exists_ok, image_size, ratio_ok, validation_error = validate_png_16_9(tmp_path)
+            if exists_ok and ratio_ok:
+                tmp_path.replace(output_path)
+            else:
+                tmp_path.unlink(missing_ok=True)
             status = "OK" if exists_ok and ratio_ok else "FAILED"
+            attempts = _attempts(progress, target.key) + 1
+            progress[target.key] = _progress_success(output_path, image_size, attempts) if status == "OK" else _progress_failed(output_path, validation_error, attempts)
+            save_image_progress(progress_root, progress)
             results.append(ImageResult(target.key, target.filename, status, target.prompt, tuple(str(p) for p in target.references), validation_error, str(output_path), exists_ok, image_size, ratio_ok, True, True, target.scene is not None, "Use only the following Japanese text elements exactly as written" in target.prompt or "minimal concise Japanese text" in target.prompt, format_openai_api_report(api_records)))
         except Exception as exc:  # keep processing other images
+            attempts = _attempts(progress, target.key) + 1
+            progress[target.key] = _progress_failed(output_path, exc, attempts)
+            save_image_progress(progress_root, progress)
             results.append(ImageResult(target.key, target.filename, "FAILED", target.prompt, tuple(str(p) for p in target.references), str(exc), str(output_path), False, None, False, False, True, target.scene is not None, False, format_openai_api_report(api_records)))
     return results
 

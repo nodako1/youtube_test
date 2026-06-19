@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import shutil
 import traceback
 from pathlib import Path
 
@@ -8,7 +10,7 @@ from .config import AppConfig
 from .fs_utils import move_file, move_path, output_folder_name, slugify
 from .generator import AIResponseJSONParseError, AIResponseValidationError, generate_ai_assets, generate_fallback_assets
 from .image_generation import build_image_quality_report, build_image_targets, generate_images, parse_image_scenes, render_failed_images, render_prompts_markdown
-from .input_assets import build_flat_input_report, derive_book_slug, find_rtfd_zip_files, format_rtfd_zip_search_error, read_rtfd_zip_text, select_flat_inputs, status_for
+from .input_assets import FlatInputSelection, build_flat_input_report, derive_book_slug, find_rtfd_zip_files, format_rtfd_zip_search_error, read_rtfd_zip_text, select_flat_inputs, status_for
 from .metadata import build_metadata_quality_report
 from .quality import build_quality_report
 from .rules import load_rules
@@ -135,6 +137,64 @@ def process_one(input_path: Path, config: AppConfig) -> Path:
 
 
 
+
+def _copy_flat_reference_assets(selection: FlatInputSelection, out_dir: Path) -> FlatInputSelection:
+    assets_dir = out_dir / "assets"
+    assets_dir.mkdir(exist_ok=True)
+
+    def copy_one(path: Path | None, name: str) -> list[Path]:
+        if path is None:
+            return []
+        dest = assets_dir / f"{name}{path.suffix.lower()}"
+        shutil.copy2(path, dest)
+        return [dest]
+
+    return FlatInputSelection(
+        selection.run_date,
+        selection.date_key,
+        selection.current_sources,
+        copy_one(selection.current_book_cover, "current_book_cover"),
+        copy_one(selection.current_author, "author_reference"),
+        selection.related_sources,
+        copy_one(selection.related_book_cover, "related_book_cover"),
+    )
+
+
+def _selection_from_output_assets(out_dir: Path) -> FlatInputSelection:
+    assets_dir = out_dir / "assets"
+    def first(pattern: str) -> list[Path]:
+        return sorted(assets_dir.glob(pattern))[:1]
+    return FlatInputSelection(
+        run_date=__import__("datetime").date.today(),
+        date_key="",
+        current_sources=[],
+        current_book_covers=first("current_book_cover.*"),
+        current_authors=first("author_reference.*"),
+        related_sources=[],
+        related_book_covers=first("related_book_cover.*"),
+    )
+
+
+def generate_images_for_output(out_dir: Path, config: AppConfig) -> Path:
+    prompts_path = out_dir / "05_image_prompts.json"
+    if not prompts_path.exists():
+        raise RuntimeError(f"05_image_prompts.json が見つかりません: {out_dir}")
+    selected_scenes = parse_image_scenes(config.image_scenes)
+    selection = _selection_from_output_assets(out_dir)
+    targets = build_image_targets(out_dir, prompts_path.read_text(encoding="utf-8"), selection, scene03_only=config.image_scene03_only, scenes=selected_scenes, include_thumbnails=False)
+    if config.dry_run_images:
+        print(render_prompts_markdown(targets))
+        results = []
+    else:
+        results = generate_images(targets, model=config.image_model, force=config.force_images, resume=config.resume_images, progress_dir=out_dir)
+    (out_dir / "image_prompts.md").write_text(render_prompts_markdown(targets), encoding="utf-8")
+    (out_dir / "failed_images.md").write_text(render_failed_images(results) if results else "# failed_images.md\n\n画像生成はdry-runのため未実行です。\n", encoding="utf-8")
+    image_report = build_image_quality_report(results, scene03_only=config.image_scene03_only, scenes=selected_scenes, model=config.image_model)
+    report_path = out_dir / "quality_report.md"
+    existing = report_path.read_text(encoding="utf-8") if report_path.exists() else "# quality_report.md\n"
+    report_path.write_text(existing.rstrip() + "\n" + image_report, encoding="utf-8")
+    return out_dir
+
 def _has_flat_today_input(config: AppConfig) -> bool:
     selection = select_flat_inputs(config.input_dir, run_date=config.target_date)
     return bool(selection.used_files)
@@ -148,6 +208,7 @@ def _write_flat_outputs(out_dir: Path, source_text: str, assets) -> None:
     (out_dir / "legacy_thumbnail_ideas.md").write_text(assets.thumbnail_ideas, encoding="utf-8")
     (out_dir / "00_input.txt").write_text(source_text, encoding="utf-8")
     (out_dir / "image_context.json").write_text(assets.image_context, encoding="utf-8")
+    (out_dir / "05_image_prompts.json").write_text(assets.image_prompts, encoding="utf-8")
     research_dir = out_dir / "research"
     research_dir.mkdir(exist_ok=True)
     (research_dir / "scene_11_story_person.md").write_text(assets.research_scene_11, encoding="utf-8")
@@ -198,16 +259,17 @@ def process_flat_inputs(config: AppConfig) -> Path:
             assets = generate_fallback_assets(source_text, book_slug, _flat_asset_checks(selection))
         else:
             raise RuntimeError("AI生成が無効です。本番実行では--use-aiを指定してください。動作確認のみ--allow-fallbackを使用できます。")
+        stable_selection = _copy_flat_reference_assets(selection, out_dir)
         selected_scenes = parse_image_scenes(config.image_scenes)
-        targets = build_image_targets(out_dir, assets.image_prompts, selection, scene03_only=config.image_scene03_only, scenes=selected_scenes, include_thumbnails=False)
+        targets = build_image_targets(out_dir, assets.image_prompts, stable_selection, scene03_only=config.image_scene03_only, scenes=selected_scenes, include_thumbnails=False)
         (out_dir / "image_prompts.md").write_text(render_prompts_markdown(targets), encoding="utf-8")
         image_report = build_image_quality_report([], scene03_only=config.image_scene03_only, scenes=selected_scenes, model=config.image_model)
         failed = "# failed_images.md\n\n画像生成は未実行です。--generate-images を指定するとOpenAI APIで生成します。\n"
         if config.dry_run_images:
             print(render_prompts_markdown(targets))
             failed = "# failed_images.md\n\n画像生成はdry-runのため未実行です。\n"
-        elif config.generate_images:
-            results = generate_images(targets, model=config.image_model, force=config.force_images)
+        elif config.generate_images and not config.generate_assets_only:
+            results = generate_images(targets, model=config.image_model, force=config.force_images, resume=config.resume_images, progress_dir=out_dir)
             failed = render_failed_images(results)
             image_report = build_image_quality_report(results, scene03_only=config.image_scene03_only, scenes=selected_scenes, model=config.image_model)
             failed_scenes = [result.key for result in results if result.status not in {"OK", "SKIPPED"}]
@@ -246,6 +308,10 @@ def process_flat_inputs(config: AppConfig) -> Path:
 
 def run(config: AppConfig) -> list[Path]:
     config.ensure_directories()
+    if config.generate_images_only:
+        if config.images_output_dir is None:
+            raise RuntimeError("--generate-images-only には --output-dir が必要です。")
+        return [generate_images_for_output(config.images_output_dir, config)]
     if _has_flat_today_input(config):
         return [process_flat_inputs(config)]
     outputs: list[Path] = []

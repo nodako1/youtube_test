@@ -19,11 +19,15 @@ class AppConfig:
     allow_fallback: bool = False
     model: str = "gpt-4.1-mini"
     generate_images: bool = False
+    generate_assets_only: bool = False
+    generate_images_only: bool = False
     image_scene03_only: bool = False
     image_model: str = "gpt-image-2"
     image_scenes: str = "1-20"
     force_images: bool = False
     dry_run_images: bool = False
+    resume_images: bool = False
+    images_output_dir: Path | None = None
     target_date: date | None = None
 
     @classmethod
@@ -36,11 +40,15 @@ class AppConfig:
         allow_fallback: bool = False,
         model: str = "gpt-4.1-mini",
         generate_images: bool = False,
+        generate_assets_only: bool = False,
+        generate_images_only: bool = False,
         image_scene03_only: bool = False,
         image_model: str = "gpt-image-2",
         image_scenes: str = "1-20",
         force_images: bool = False,
         dry_run_images: bool = False,
+        resume_images: bool = False,
+        images_output_dir: Path | None = None,
         target_date: date | None = None,
     ) -> "AppConfig":
         root = root.resolve()
@@ -57,11 +65,15 @@ class AppConfig:
             allow_fallback=allow_fallback,
             model=model,
             generate_images=generate_images,
+            generate_assets_only=generate_assets_only,
+            generate_images_only=generate_images_only,
             image_scene03_only=image_scene03_only,
             image_model=image_model,
             image_scenes=image_scenes,
             force_images=force_images,
             dry_run_images=dry_run_images,
+            resume_images=resume_images,
+            images_output_dir=images_output_dir.resolve() if images_output_dir else None,
             target_date=target_date,
         )
 

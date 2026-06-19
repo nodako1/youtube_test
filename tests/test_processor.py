@@ -170,3 +170,53 @@ def test_flat_rtfd_missing_target_date_error_lists_target_and_found_files(tmp_pa
     assert "found_rtfd_zip_files:" in message
     assert "- input/20260616_関連本.rtfd.zip" in message
     assert "- input/20260621_未来本.rtfd.zip" in message
+
+
+def test_generate_assets_only_copies_reference_assets_and_does_not_generate_images(tmp_path: Path, monkeypatch):
+    from datetime import date
+    from zipfile import ZipFile
+
+    def fail_generate_images(*args, **kwargs):
+        raise AssertionError("image API should not be called")
+
+    monkeypatch.setattr("bookbase_automation.processor.generate_images", fail_generate_images)
+    config = AppConfig.from_root(tmp_path, allow_fallback=True, generate_assets_only=True, generate_images=True, target_date=date(2026, 6, 20))
+    config.ensure_directories()
+    with ZipFile(config.input_dir / "20260620_対象本.rtfd.zip", "w") as archive:
+        archive.writestr("TXT.rtf", "対象本の読書メモです。")
+    (config.input_dir / "20260620_book_cover.webp").write_bytes(b"fake cover")
+    (config.input_dir / "20260620_author.jpg").write_bytes(b"fake author")
+    (config.input_dir / "20260616_book_cover.webp").write_bytes(b"fake related cover")
+
+    out_dir = run(config)[0]
+
+    assert (out_dir / "script.md").exists()
+    assert (out_dir / "05_image_prompts.json").exists()
+    assert (out_dir / "assets" / "current_book_cover.webp").exists()
+    assert (out_dir / "assets" / "author_reference.jpg").exists()
+    assert (out_dir / "assets" / "related_book_cover.webp").exists()
+    assert not list((out_dir / "images").glob("scene_*.png"))
+
+
+def test_generate_images_only_uses_existing_prompts_without_ai_assets(tmp_path: Path, monkeypatch):
+    import json
+
+    def fail_ai(*args, **kwargs):
+        raise AssertionError("generate_ai_assets should not be called")
+
+    calls = []
+
+    def fake_generate_images(targets, **kwargs):
+        calls.extend(targets)
+        return []
+
+    monkeypatch.setattr("bookbase_automation.processor.generate_ai_assets", fail_ai)
+    monkeypatch.setattr("bookbase_automation.processor.generate_images", fake_generate_images)
+    out_dir = tmp_path / "output" / "2026-06-20_book"
+    out_dir.mkdir(parents=True)
+    (out_dir / "05_image_prompts.json").write_text(json.dumps([{"scene": 10, "prompt": "scene ten"}]), encoding="utf-8")
+    config = AppConfig.from_root(tmp_path, generate_images_only=True, images_output_dir=out_dir, image_scenes="10", resume_images=True)
+
+    assert run(config) == [out_dir]
+    assert [target.key for target in calls] == ["scene_10"]
+    assert calls[0].prompt.endswith("scene ten")
