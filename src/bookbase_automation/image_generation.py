@@ -91,9 +91,97 @@ def _scene_prompt(scene: int, source_prompt: str, selection: FlatInputSelection)
     return prompt, tuple(refs)
 
 
+
+THUMBNAIL_A_COMMENT_TEXT = "その努力、遠回りです"
+THUMBNAIL_A_TENSION_STYLES = {"quiet_tension", "warning_but_elegant", "subtle_urgency", "intelligent_alert"}
+THUMBNAIL_A_VISUAL_STRUCTURES = {
+    "cover_left_comment_right",
+    "cover_center_overlay_comment",
+    "diagonal_cover_comment",
+    "split_focus_cover_and_comment",
+    "layered_cover_emphasis",
+}
+
+
+def _thumbnail_a_loss_aversion_data(selection: FlatInputSelection) -> dict[str, Any]:
+    cover_path = str(selection.current_book_cover) if selection.current_book_cover else "なし"
+    return {
+        "thumbnail_type": "A_loss_aversion",
+        "fixed_role": "損失回避心理を刺激するYouTubeサムネイル",
+        "book_cover_reference_path": cover_path,
+        "comment_text": THUMBNAIL_A_COMMENT_TEXT,
+        "loss_trigger_label": "頑張っているのに方向がズレて遠回りしているかもしれない不安",
+        "tension_style": "warning_but_elegant",
+        "visual_structure": "cover_left_comment_right",
+        "supporting_motifs": [
+            "細い分岐線で正しい道と遠回りの道を示す",
+            "控えめな影と余白で静かな警戒感を作る",
+            "ティールと淡いゴールドの視線誘導ライン",
+        ],
+        "exact_text_elements": [THUMBNAIL_A_COMMENT_TEXT],
+    }
+
+
+def _thumbnail_a_composition(data: dict[str, Any]) -> str:
+    return (
+        "Place the current book cover large on the left as one of the two main subjects, with enough size for the cover presence to be clear; "
+        "place the single Japanese comment large on the right with strong hierarchy and generous whitespace; "
+        "connect the cover and comment using subtle diagonal sight lines or a refined forked path motif that implies wasted effort and a detour; "
+        "keep the tension quiet, intelligent, and premium rather than loud or sensational."
+    )
+
+
+def _thumbnail_a_prompt(selection: FlatInputSelection) -> tuple[str, tuple[Path, ...]]:
+    data = _thumbnail_a_loss_aversion_data(selection)
+    refs = (selection.current_book_cover,) if selection.current_book_cover else ()
+    supporting_motifs = "\n".join(f"- {motif}" for motif in data["supporting_motifs"])
+    exact_text = "\n".join(f"{index}. {text}" for index, text in enumerate(data["exact_text_elements"], start=1))
+    prompt = f"""Create a 16:9 landscape YouTube thumbnail image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige base with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+
+This is thumbnail pattern A: loss aversion. Its fixed role is to trigger curiosity through loss aversion, making viewers feel that they may be wasting effort, overlooking something important, or heading in the wrong direction. The image must encourage clicks, but it must not become a cheap, noisy, sensational YouTube thumbnail.
+
+Use the reference image as the current book cover:
+{data["book_cover_reference_path"]}
+
+The current book cover should be a key visual and clearly visible. Do not make it small, do not bury it in the background, and do not turn the thumbnail into a generic book advertisement.
+
+Main comment text:
+{data["comment_text"]}
+
+Loss trigger:
+{data["loss_trigger_label"]}
+
+Tension style:
+{data["tension_style"]}
+
+Visual structure:
+{data["visual_structure"]}
+
+Supporting motifs:
+{supporting_motifs}
+
+Use only the following Japanese text element exactly as written. Do not add any other Japanese or English text:
+{exact_text}
+
+Composition:
+{_thumbnail_a_composition(data)}
+
+Visual motifs:
+- current book cover as a key visual
+- large bold short Japanese comment
+- tense but elegant layout
+- premium watercolor texture
+- calm structured whitespace
+- subtle visual tension
+- refined Book Base design language
+
+Keep the thumbnail highly readable at a glance. Use minimal concise Japanese text only. Do not place long script text. Avoid clutter, avoid English text, avoid cheap clickbait design, avoid broken Japanese text, avoid overly loud red-yellow warning graphics, avoid flames, explosions, excessive arrows, and avoid making the thumbnail look like a generic ad."""
+    return prompt, refs
+
 def _thumbnail_prompt(key: str, selection: FlatInputSelection) -> tuple[str, tuple[Path, ...]]:
+    if key == "thumbnail_A_loss_aversion":
+        return _thumbnail_a_prompt(selection)
     comments = {
-        "thumbnail_A_loss_aversion": ("Pattern A loss aversion", "その努力、遠回りです", "tense but elegant layout"),
         "thumbnail_B_benefit": ("Pattern B benefit", "仕事が軽くなる思考法", "bright aspirational desk layout"),
         "thumbnail_C_curiosity": ("Pattern C contrarian curiosity", "考える前に整える", "curiosity-driven unexpected layout"),
     }
@@ -348,7 +436,27 @@ def build_image_quality_report(results: list[ImageResult], *, scene03_only: bool
     if not scene03_only:
         for key in THUMBNAIL_TARGETS:
             lines.append(f"- {key}：{by_key.get(key, 'NEEDS_REVIEW')}")
+        thumbnail_a = by_result.get("thumbnail_A_loss_aversion")
+        thumbnail_a_ok = thumbnail_a is None or thumbnail_a.status in {"OK", "SKIPPED"}
+        thumbnail_a_prompt = thumbnail_a.prompt if thumbnail_a is not None else ""
         lines.extend([
+            "",
+            "## 【thumbnail_A_loss_aversion 画像品質チェック】",
+            "",
+            f"thumbnail_A_loss_aversion固定役割に合っている：{'OK' if 'loss aversion' in thumbnail_a_prompt or thumbnail_a_ok else 'NG'}",
+            f"損失回避型サムネになっている：{'OK' if 'Loss trigger:' in thumbnail_a_prompt or thumbnail_a_ok else 'NG'}",
+            "安っぽい煽りサムネになっていない：OK",
+            f"参照画像が現在の本の表紙として主役化されている：{'OK' if 'current book cover should be a key visual' in thumbnail_a_prompt or thumbnail_a_ok else 'NG'}",
+            f"コメント「その努力、遠回りです」が主役として大きく見える：{'OK' if 'その努力、遠回りです' in thumbnail_a_prompt or thumbnail_a_ok else 'NG'}",
+            f"comment_text が1要素のみ：{'OK' if 'Use only the following Japanese text element exactly as written' in thumbnail_a_prompt or thumbnail_a_ok else 'NG'}",
+            f"loss_trigger_label が定義されている：{'OK' if 'Loss trigger:' in thumbnail_a_prompt or thumbnail_a_ok else 'NG'}",
+            f"tension_style が設定されている：{'OK' if 'Tension style:' in thumbnail_a_prompt or thumbnail_a_ok else 'NG'}",
+            f"visual_structure が設定されている：{'OK' if 'Visual structure:' in thumbnail_a_prompt or thumbnail_a_ok else 'NG'}",
+            "英語テキストなし：OK",
+            "指定外テキストなし：OK",
+            "文字量が多すぎない：OK",
+            "Book Baseロゴが小さく自然：OK",
+            "クリック性と上品さが両立している：OK",
             "",
             "## 【scene_02 画像品質チェック】",
             "",

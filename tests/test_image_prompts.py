@@ -444,3 +444,33 @@ def test_scene_20_prompt_builds_warm_closing_from_current_script():
     assert "Visual structure:" in scene_20["final_prompt"]
     assert "It must not become a recap scene, a practical work scene, a related-video promotion, or a CTA banner" in scene_20["final_prompt"]
     assert "avoid CTA wording" in scene_20["final_prompt"]
+
+
+def test_thumbnail_a_loss_aversion_prompt_uses_permanent_quality_structure(tmp_path: Path):
+    cover = tmp_path / "20260619_book_cover.webp"
+    cover.write_bytes(b"cover")
+    selection = FlatInputSelection(
+        run_date=date(2026, 6, 19),
+        date_key="20260619",
+        current_sources=[],
+        current_book_covers=[cover],
+        current_authors=[],
+        related_sources=[],
+        related_book_covers=[],
+    )
+
+    targets = build_image_targets(tmp_path / "output", "[]", selection, scenes=[], include_thumbnails=True)
+    thumbnail_a = next(target for target in targets if target.key == "thumbnail_A_loss_aversion")
+
+    assert thumbnail_a.references == (cover,)
+    assert "This is thumbnail pattern A: loss aversion" in thumbnail_a.prompt
+    assert "Use the reference image as the current book cover" in thumbnail_a.prompt
+    assert str(cover) in thumbnail_a.prompt
+    assert "Main comment text:\nその努力、遠回りです" in thumbnail_a.prompt
+    assert "Loss trigger:" in thumbnail_a.prompt
+    assert "Tension style:\nwarning_but_elegant" in thumbnail_a.prompt
+    assert "Visual structure:\ncover_left_comment_right" in thumbnail_a.prompt
+    assert "Use only the following Japanese text element exactly as written" in thumbnail_a.prompt
+    assert "1. その努力、遠回りです" in thumbnail_a.prompt
+    assert "cheap clickbait" in thumbnail_a.prompt
+    assert "flames, explosions, excessive arrows" in thumbnail_a.prompt

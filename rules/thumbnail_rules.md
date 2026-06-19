@@ -110,3 +110,67 @@ Pattern C：
 - スマホで読める文字量か。
 - ブックカバーの視認性があるか。
 - 汎用的な弱いコピーになっていないか。
+
+## thumbnail_A_loss_aversion 恒久品質ルール
+
+`thumbnail_A_loss_aversion` の固定役割は「損失回避心理を刺激するBook BaseのYouTubeサムネイル」とする。視聴者に「気づかないままだと損をする」「頑張っているのに方向がズレているかもしれない」と感じさせる入口を作るが、安っぽい煽りや炎上系サムネにはしない。
+
+### 可変データ構造
+
+Pattern Aのプロンプト作成前に、毎回以下を明示する。
+
+```json
+{
+  "thumbnail_type": "A_loss_aversion",
+  "fixed_role": "損失回避心理を刺激するYouTubeサムネイル",
+  "book_cover_reference_path": "現在の本の表紙パス",
+  "comment_text": "損失回避系の短い強い一言",
+  "loss_trigger_label": "視聴者に感じさせたい損失・見落とし・遠回りの要素",
+  "tension_style": "quiet_tension / warning_but_elegant / subtle_urgency / intelligent_alert のいずれか",
+  "visual_structure": "cover_left_comment_right / cover_center_overlay_comment / diagonal_cover_comment / split_focus_cover_and_comment / layered_cover_emphasis のいずれか",
+  "supporting_motifs": ["緊張感や見落とし感を補助する軽い視覚要素"],
+  "exact_text_elements": ["comment_textと同一の1要素のみ"]
+}
+```
+
+今回の固定サンプルコメントは「その努力、遠回りです」だが、恒久実装では本ごとに損失回避系の短い一言を生成し、他動画との重複を避ける。
+
+### Pattern A専用レイアウトルール
+
+- 現在の本の表紙を主役の1つとして大きく見せる。小さく隅に置いたり背景に埋めたりしない。
+- 画像内テキストは最大1要素まで。今回対象では「その努力、遠回りです」のみを正確に使う。
+- 表紙とコメントの関係性を作り、単なる表紙紹介サムネや広告風配置にしない。
+- 緊張感は `tension_style` に基づいて、静かな危機感・知的な警告・控えめな切迫感として表現する。
+- `visual_structure` に基づいて、表紙位置、コメント位置、視線誘導、余白を決める。
+- 補助モチーフは遠回り、見落とし、方向違いを示す控えめな線・分岐・影などに留める。
+
+### Pattern Aで禁止する表現
+
+- 複数見出し、サブコピー、長文説明、原稿本文のコピペ。
+- 英語テキスト、意味不明な文字、崩れた日本語、CTA文。
+- 真っ赤な背景、派手すぎる黄色文字、絶叫感、ビックリマーク多用、過剰な矢印、炎、破裂、爆発などの安っぽい煽り表現。
+- Book Baseロゴを大きく目立たせること。
+
+### thumbnail_A_loss_aversion 品質チェック
+
+`quality_report.md` には以下を記録する。
+
+```text
+【thumbnail_A_loss_aversion 画像品質チェック】
+
+thumbnail_A_loss_aversion固定役割に合っている：OK / NG
+損失回避型サムネになっている：OK / NG
+安っぽい煽りサムネになっていない：OK / NG
+参照画像が現在の本の表紙として主役化されている：OK / NG
+コメント「その努力、遠回りです」が主役として大きく見える：OK / NG
+comment_text が1要素のみ：OK / NG
+loss_trigger_label が定義されている：OK / NG
+tension_style が設定されている：OK / NG
+visual_structure が設定されている：OK / NG
+英語テキストなし：OK / NG
+指定外テキストなし：OK / NG
+文字量が多すぎない：OK / NG
+Book Baseロゴが小さく自然：OK / NG
+クリック性と上品さが両立している：OK / NG
+```
+
