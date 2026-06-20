@@ -2,115 +2,68 @@
 
 ## 固定役割
 
-重要ポイント②の具体化。
+scene_10は、直前の重要ポイントを一段深く説明する深掘り画像である。scene_06はscene_05の重要ポイント①、scene_10はscene_09の重要ポイント②、scene_14はscene_13の重要ポイント③に対応する。単なる見出しカードや抽象背景ではなく、原稿の中核概念を短い言葉、図解、人物・場面イラストに変換し、1枚で理解が進む画像にする。
 
-scene_10は、scene_09で提示した重要ポイント②を、具体例・比較・手順・実践場面などで分かりやすくする。視聴者が「なるほど、こう使うのか」と理解できるように、重要ポイント②を一段具体化する。
-
-## 固定してはいけないもの
-
-次の内容は特定の本に依存するため、恒久テンプレートに固定しない。
-
-- cause and effect
-- flowchart
-- split-screen
-- business people in conversation
-- コミュニケーション
-- 言い換え
-- 視点変更
-- 原因と結果
-
-これらは現在の本や原稿に合う場合のみ、可変内容として使う。
-
-## scene_10 可変データ構造
-
-scene_10用に毎回以下を作成する。
+## 毎回抽出する可変データ
 
 ```json
 {
-  "scene": 10,
-  "fixed_role": "重要ポイント②の具体化",
-  "point_2_label": "重要ポイント②を短く表す言葉",
-  "scene_10_core_message": "scene_10で一番伝えるべき具体内容",
-  "example_label": "具体例や場面を短く表す言葉",
-  "application_label": "実践・使い方を短く表す言葉",
-  "result_label": "得られる変化や理解を短く表す言葉",
-  "visual_structure": "before_after / step_demo / example_scene / comparison / action_map / framework_demo のいずれか",
-  "visual_metaphor": "現在の内容に合う視覚的な比喩",
-  "exact_text_elements": ["短い文字1", "短い文字2", "短い文字3"]
+  "scene_number": 10,
+  "point_number": "重要ポイント②",
+  "main_concept": "このシーンの中核概念",
+  "misconception": "よくある誤解・悪い例",
+  "correct_view": "本書が示す正しい見方",
+  "framework_elements": ["分解して見せる要素"],
+  "process_flow": ["流れや手順がある場合のステップ"],
+  "before_after": "変化を見せられる場合のBefore / After",
+  "visual_metaphor": "内容に合う比喩表現",
+  "takeaway_label": "下部に置くまとめの一言",
+  "visual_structure": "before_after / flow_diagram / decomposition / contrast / metaphor のいずれか",
+  "exact_text_elements": ["大きな主張", "図解ラベル", "まとめ帯"]
 }
 ```
 
-## visual_structure の選び方
+## 必須構成
 
-- `before_after`：変化前と変化後を見せる場合。
-- `step_demo`：3ステップなど、順番に進める手順を見せる場合。
-- `example_scene`：会議、仕事、日常、読書、整理、学習など、1つの具体場面で見せた方が伝わる場合。
-- `comparison`：普通のやり方と本書のやり方、間違いやすい方法と良い方法、旧習慣と新習慣などを比べる場合。
-- `action_map`：やることが複数あり、実践手順を地図のように見せたい場合。
-- `framework_demo`：考え方の型、整理法、チェックリスト、判断基準を見せる場合。
+1. 大きな主張：原稿の核心を短く強く表示し、見出しだけでなく本書の視点が伝わる言葉にする。
+2. 図解要素：Before / After、悪い例 / 良い例、フロー図、分解図、判断軸、因果関係、3ステップのいずれかを内容に合わせて使う。
+3. 人物・場面イラスト：職場、会話、会議、家庭、学習、お金、習慣など、本のテーマに合った具体的な場面を描き、抽象背景だけで終わらせない。
+4. 短い補足テキスト：図解の意味が分かる短いキーワードを配置し、情報を削るのではなく吸収しやすい言葉に変換する。
+5. 下部のまとめ帯：このシーンで一番覚えてほしい一文を入れる。
 
-## 画像内テキストルール
+## レイアウト選択
 
-画像内テキストは3つ以内にする。
+- `before_after`：誤ったやり方と改善後を左右で比較する。
+- `flow_diagram`：入力 → 行動 → 結果、原因 → プロセス → 成果を流れで見せる。
+- `decomposition`：似ている概念や構成要素を分けて見せる。
+- `contrast`：悪い例と良い例、誤解と本書の視点を比較する。
+- `metaphor`：迷路、階段、橋、地図、設計図、天秤、盾、コンパスなどで抽象概念を視覚化する。
 
-基本形式：
+## テーマ別視覚化
 
-1. 重要ポイント②の短い内容
-2. 具体例ラベル
-3. 実践・変化ラベル
+コミュニケーション系は吹き出しや表情、マネジメント系は会議・設計図・チーム、お金・投資系は積立・グラフ・リスクとリターン、習慣・自己啓発系は階段・ループ・日々の行動、思考法系は地図・ノート・分岐、ストレス・心理系は心・脳・負荷・回復、時間術系は時計・予定表・優先順位を、現在の本の内容に合う場合だけ使う。
 
-ただし、毎回の原稿から生成する。
+## デザインルール
 
-禁止：原稿本文のコピペ、20文字以上の長い説明、4つ以上のテキスト要素、英語テキスト、今回の本の言葉の固定化、原因と結果の固定表示。
+16:9固定。水彩画風。淡いクリーム背景。ティール・ゴールドをアクセントにし、高級感のあるビジネス書要約チャンネルらしい雰囲気にする。文字は読みやすく、情報量とのバランスを取る。Book Baseロゴは固定ロゴ画像を後処理で合成するため、AIに描かせない。
 
-## 推奨プロンプトテンプレート
+## 禁止事項
 
-```text
-Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
-
-This is Scene 10. Its fixed role is to make Key Point 2 concrete through an example, comparison, practical step, or application image. The image should help viewers understand how Key Point 2 works in practice. Do not create a generic cause-and-effect flowchart unless the current script actually requires it. Do not hard-code any topic from a previous book. Build the visual message from the current script only.
-
-Current Key Point 2:
-{point_2_label}
-
-Current Scene 10 core message:
-{scene_10_core_message}
-
-Visual structure:
-{visual_structure}
-
-Use only the following Japanese text elements exactly as written. Do not add any other Japanese or English text:
-1. {example_label}
-2. {application_label}
-3. {result_label}
-
-Visual metaphor:
-{visual_metaphor}
-
-Composition:
-{scene_10_composition}
-
-Visual motifs:
-{visual_motifs}
-
-Keep the image clean and easy to understand at a glance. Use minimal Japanese text only. Do not place long script text. Avoid clutter, avoid generic split-screen flowcharts, avoid generic business people, avoid English text, and avoid repeating the Scene 09 composition.
-```
+大きな見出しだけの画像、抽象背景だけの画像、情報量が少なすぎる画像、原稿の内容と関係が薄いイラスト、ただのタイトルカード、特定の本のビジュアル固定、本が変わっても同じ構図になること、長文テキスト、英語テキスト、プロンプト指示文の画像内混入を禁止する。
 
 ## quality_report.md への記録
-
-`quality_report.md` に以下を記録する。
 
 ```text
 【scene_10 画像品質チェック】
 
-scene_10固定役割に合っている：OK / NG
-重要ポイント②の具体化になっている：OK / NG
-現在の原稿内容に沿っている：OK / NG
-visual_structure が適切：OK / NG
-可変ラベルが原稿から生成されている：OK / NG
+深掘りシーンの固定役割に合っている：OK / NG
+直前の重要ポイントを深掘りしている：OK / NG
+原稿内容を図解・人物・短文に変換している：OK / NG
+見出しだけで終わっていない：OK / NG
+Before/After・フロー・対比・分解図・メタファーのいずれかがある：OK / NG
+テーマに合った具体場面がある：OK / NG
+下部にまとめ帯がある：OK / NG
+毎回同じ構図になっていない：OK / NG
 過去テーマのハードコードなし：OK / NG
 指定外テキストなし：OK / NG
-文字量が少ない：OK / NG
-scene_09と構図が違う：OK / NG
-generic flowchart image になっていない：OK / NG
 ```
