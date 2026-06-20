@@ -131,7 +131,8 @@ def test_render_script_from_scenes_enforces_bookbase_format():
     from bookbase_automation.generator import render_script_from_scenes, validate_bookbase_script
 
     scene_1 = "こんにちは！人生の土台作りをサポートするブックベースです！いきなりですが、人材関連サービスを提供する株式会社R＆Gの2026年の調査で、能力開発や人材育成に問題があると答えた事業所は何％だったと思いますか。A、39.9％。B、59.9％。C、79.9％。管理職だけでなく、後輩指導やチーム作業にも直結する数字です。自分の仕事の土台にも関わります。それでは正解を発表します。"
-    scenes = [{"scene_number": 1, "body": scene_1}] + [{"scene_number": index, "body": "あ" * 180} for index in range(2, 21)]
+    scene_3 = "今回紹介するのは、著者さんの『テスト本』こちらの本になります。結論から言うと、仕事の判断を整理できることです。本書が教えてくれるのは、根性で乗り切る方法ではなく、状況の見方を変える技術です。会議や相談の場面でも、考える順番が整うだけで言葉の選び方が変わります。迷った時の確認点が増えるので、明日の一歩も選びやすくなります。仕事に活かしたい人にとって、とても学びのある一冊になっています。"
+    scenes = [{"scene_number": 1, "body": scene_1}] + [{"scene_number": index, "body": scene_3 if index == 3 else "あ" * 180} for index in range(2, 21)]
     rendered = render_script_from_scenes(scenes)
 
     assert rendered.startswith("【シーン1】\n")

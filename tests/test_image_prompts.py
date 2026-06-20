@@ -73,21 +73,22 @@ def test_scene_02_fallback_prompt_is_structured_and_text_limited():
     assert "一般的な見方" in scene_02["exact_text_elements"][2]
 
 
-def test_scene_03_fallback_prompt_requires_real_cover_composite():
+def test_scene_03_fallback_prompt_uses_cover_reference_at_generation():
     assets = generate_fallback_assets("本のメモ", "否定しない言い換え事典")
     prompts = json.loads(assets.image_prompts)
     scene_03 = prompts[2]
 
     assert scene_03["scene"] == 3
     assert scene_03["reference_image_required"] is True
-    assert scene_03["exact_text_elements"][0] == "今回の一冊"
+    assert scene_03["exact_text_elements"][0] == "今回の1冊"
     assert scene_03["exact_text_elements"][1]
-    assert scene_03["post_process"]["composite_real_book_cover"] is True
-    assert "Do not draw or recreate the book cover" in scene_03["final_prompt"]
-    assert "Do not draw or recreate the book cover" in scene_03["final_prompt"]
+    assert scene_03["post_process"]["composite_real_book_cover"] is False
+    assert scene_03["post_process"]["cover_reference_at_generation"] is True
+    assert "Use the provided reference image as the actual current book cover from the start" in scene_03["final_prompt"]
+    assert "Do not make the cover look pasted on later" in scene_03["final_prompt"]
 
 
-def test_scene_03_target_keeps_cover_reference_but_prompt_generates_background(tmp_path: Path):
+def test_scene_03_target_keeps_cover_reference_and_integrates_cover(tmp_path: Path):
     cover = tmp_path / "20260619_book_cover.webp"
     cover.write_bytes(b"cover")
     selection = FlatInputSelection(
@@ -104,8 +105,8 @@ def test_scene_03_target_keeps_cover_reference_but_prompt_generates_background(t
     [target] = build_image_targets(tmp_path / "output", assets.image_prompts, selection, scene03_only=True)
 
     assert target.references == (cover,)
-    assert "actual book cover will be composited later" in target.prompt
-    assert "Leave prominent clean space" in target.prompt
+    assert "Use the provided reference image as the actual current book cover from the start" in target.prompt
+    assert "Do not make the cover look pasted on later" in target.prompt
 
 
 def test_scene_04_prompt_uses_author_reference_only_when_available(tmp_path: Path):

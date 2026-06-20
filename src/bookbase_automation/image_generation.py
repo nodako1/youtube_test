@@ -662,12 +662,9 @@ def generate_images(targets: list[ImageTarget], *, model: str = "gpt-image-2", s
                     save_image_progress(progress_root, progress)
                     results.append(ImageResult(target.key, target.filename, "NEEDS_REVIEW", target.prompt, tuple(str(p) for p in target.references), "今回の本のブックカバーが見つかりません", str(output_path), False, None, False, False, True, target.scene is not None, False))
                     continue
-            generation_target = ImageTarget(target.key, target.filename, target.output_dir, target.prompt, (), target.scene) if target.scene in {3, 16} else target
+            generation_target = ImageTarget(target.key, target.filename, target.output_dir, target.prompt, (), target.scene) if target.scene == 16 else target
             image_bytes = _generate_one(client, generation_target, model=model, size=size, quality=quality, output_format=output_format, records=api_records)
             time.sleep(1.0)
-            if target.scene == 3:
-                assert cover_path is not None
-                image_bytes = composite_scene03_book_cover(image_bytes, cover_path)
             if target.scene == 16 and target.references:
                 image_bytes = composite_scene16_book_cover(image_bytes, target.references[0])
             image_bytes = apply_bookbase_logo(image_bytes)
