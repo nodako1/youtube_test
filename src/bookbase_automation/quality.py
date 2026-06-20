@@ -360,6 +360,19 @@ def _has_exact_scene_sequence(scenes: dict[int, str]) -> bool:
     return sorted(scenes) == list(range(1, 21))
 
 
+
+def _scene_2_bridge_ok(scene_2: str) -> bool:
+    if not scene_2 or "正解" not in scene_2:
+        return False
+    if not re.search(r"そこで今回は、.+について学んでいきます。$", scene_2):
+        return False
+    if any(meta in scene_2 for meta in ["省略不可", "改行入れません", "のままにします", "プロンプト", "指示文"]):
+        return False
+    has_meaning = any(token in scene_2 for token in ["意味します", "ということです", "示しています", "見えてきます", "捉えています"])
+    has_gap = any(token in scene_2 for token in ["一見", "と思われがち", "世間", "一般", "ズレ", "実は", "しかし"])
+    has_book_need = "本書" in scene_2 and any(token in scene_2 for token in ["学ぶ", "知る", "見る", "必要", "大事"])
+    return has_meaning and has_gap and has_book_need
+
 def build_quality_report(script: str, titles: str, image_prompts: str, description: str = "", source_text: str = "") -> str:
     scene_map = _scene_bodies(script)
     scenes = _ordered_scene_bodies(script)
@@ -415,7 +428,7 @@ def build_quality_report(script: str, titles: str, image_prompts: str, descripti
         CheckResult("50〜60文字説明", "OK" if DESCRIPTION_MIN_CHARS <= description_length <= DESCRIPTION_MAX_CHARS else "NG", f"現在の説明文字数: {description_length}"),
         CheckResult("シーン1統計クイズ", "OK" if not _scene_1_quiz_errors(scene_1) else "NG", " / ".join(_scene_1_quiz_errors(scene_1)) or "固定開始文、出典説明、数値選択肢、締め文を確認済み"),
         CheckResult("シーン1禁止表現なし", "OK" if not any(phrase in scene_1 for phrase in FORBIDDEN_SCENE_1_PHRASES) else "NG", "禁止表現を確認してください"),
-        CheckResult("シーン2正解発表とテーマ接続", "OK" if "正解" in scene_2 and any(token in scene_2 for token in ["テーマ", "本", "会社員"]) else "NG", "正解発表からテーマへ接続してください"),
+        CheckResult("シーン2正解発表・意味づけ・学習接続", "OK" if _scene_2_bridge_ok(scene_2) else "NG", "正解発表→意味づけ→世間とのズレ→本の内容を学ぶ必要性→そこで今回は〜について学んでいきます。の順で接続してください"),
         CheckResult("シーン3本紹介固定文", "OK" if "今回紹介するのは、" in scene_3 and "こちらの本になります。" in scene_3 else "NG", "固定文を確認してください"),
         CheckResult("シーン4著者紹介と3ポイント", "OK" if "著者" in scene_4 and "3つ" in scene_4 else "NG", "著者紹介と3つの重要ポイントを確認してください"),
         CheckResult("シーン5冒頭固定", "OK" if scene_5.startswith(SCENE_5_PREFIX) else "NG", f"必須開始文: {SCENE_5_PREFIX}"),

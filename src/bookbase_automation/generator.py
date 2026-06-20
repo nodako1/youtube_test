@@ -95,7 +95,7 @@ def build_image_context(script: str, book_title: str, asset_checks: list[AssetCh
             {"index": 2, "label": labels[1], "core_message": labels[1]},
             {"index": 3, "label": labels[2], "core_message": labels[2]},
         ],
-        "scene_bodies": {"scene_05": scene5, "scene_06": scene6, "scene_07": scene7, "scene_09": scene9, "scene_10": scene10, "scene_11": scene11, "scene_12": scene12, "scene_13": scene13, "scene_14": scene14, "scene_15": scene15, "scene_16": scene16, "scene_17": scene17, "scene_18": scene18, "scene_20": scene20},
+        "scene_bodies": {"scene_02": scene2, "scene_05": scene5, "scene_06": scene6, "scene_07": scene7, "scene_09": scene9, "scene_10": scene10, "scene_11": scene11, "scene_12": scene12, "scene_13": scene13, "scene_14": scene14, "scene_15": scene15, "scene_16": scene16, "scene_17": scene17, "scene_18": scene18, "scene_20": scene20},
         "assets": {
             "book_cover": _asset_path(asset_checks, "scene_03_current_book_cover"),
             "author_reference": _asset_path(asset_checks, "scene_04_author_reference"),
@@ -145,15 +145,42 @@ def _text_block(elements: list[str]) -> str:
 def _scene_01_structured_prompt(context: dict[str, object]) -> dict[str, object]:
     quiz = context["quiz"]
     elements = [str(quiz["question"]), str(quiz["source_label"]), f"A {quiz['option_a']}", f"B {quiz['option_b']}", f"C {quiz['option_c']}"]
-    final_prompt = f"Create a 16:9 landscape video-insert image. Style: refined watercolor illustration, premium calm atmosphere, soft cream background, teal and subtle gold accents, Japanese business book YouTube channel. This is Scene 01: opening statistics quiz. The image must communicate the quiz content at a glance; do not show only large A/B/C letters. Always display the numeric values in each option. Layout: left side has a large quiz headline and three option cards stacked vertically; right side has a thoughtful Japanese office worker or meeting-room people thinking. Place a small natural Book Base logo in the lower-left corner. Do not reveal the answer, do not add explanations, and do not add any text outside exact_text_elements. Extract only the quiz headline, source label, and numeric options from Scene 01; never include the opening greeting, closing sentence, source explanation sentence, or long script text in the image. {TEXT_LOCK_INSTRUCTION}:\n{_text_block(elements)}\nComposition: left 60% quiz panel with headline, small source label, and A/B/C option cards including numbers; right 40% thoughtful office worker or meeting room; clean whitespace; premium beige/teal/gold palette. Avoid showing only A/B/C, avoid correct-answer marks, avoid clutter, avoid English text."
+    final_prompt = f"Create a 16:9 landscape video-insert image. Style: refined watercolor illustration, premium calm atmosphere, soft cream background, teal and subtle gold accents, Japanese business book YouTube channel, fixed Book Base logo will be composited in post-processing. This is Scene 01: opening statistics quiz. The image must communicate the quiz content at a glance; do not show only large A/B/C letters. Always display the numeric values in each option. Layout: left side has a large quiz headline and three option cards stacked vertically; right side has a thoughtful Japanese office worker or meeting-room people thinking. Place a small natural Book Base logo in the lower-left corner. Do not reveal the answer, do not add explanations, and do not add any text outside exact_text_elements. Extract only the quiz headline, source label, and numeric options from Scene 01; never include the opening greeting, closing sentence, source explanation sentence, or long script text in the image. {TEXT_LOCK_INSTRUCTION}:\n{_text_block(elements)}\nComposition: left 60% quiz panel with headline, small source label, and A/B/C option cards including numbers; right 40% thoughtful office worker or meeting room; clean whitespace; premium beige/teal/gold palette. Avoid showing only A/B/C, avoid correct-answer marks, avoid clutter, avoid English text."
     return {"scene": 1, "scene_role": "オープニングの統計・ニュース・調査データ風クイズ", "core_message": str(quiz["question"]), "source_label": str(quiz["source_label"]), "exact_text_elements": elements, "composition": "左側に大きなクイズ見出しと数値入り選択肢カード、右側に考え込む会社員、左下にBook Baseロゴ", "visual_motifs": ["大きなクイズ見出し", "数値入り選択肢カード", "考え込む会社員", "会議室", "左下Book Baseロゴ"], "style": _COMMON_STYLE_FOR_SCHEMA, "negative_rules": ["答えを出さない", "A/B/Cだけを大きく表示しない", "選択肢の数字を省略しない", "長文を入れない", "今回テーマ固有語句を固定しない"], "variation_key": "opening-statistics-quiz-left-card-right-person", "final_prompt": final_prompt}
 
 
 def _scene_02_structured_prompt(context: dict[str, object]) -> dict[str, object]:
     quiz = context["quiz"]
-    elements = [f"正解は{quiz['correct_answer']}", str(quiz["answer_label"]), str(context["current_theme"])]
-    final_prompt = f"Create a video-insert image. Style: {_COMMON_STYLE_FOR_SCHEMA}. This is Scene 02: reveal the answer to Scene 01 and bridge naturally into the video theme. Keep it calm, not a flashy quiz show. {TEXT_LOCK_INSTRUCTION}:\n{_text_block(elements)}\nComposition: answer card separated from a small theme-bridge card, calm office worker, subtle light. Avoid repeating Scene 01 composition."
-    return {"scene": 2, "scene_role": "クイズ正解発表とテーマへの橋渡し", "core_message": str(quiz["answer_label"]), "exact_text_elements": elements, "composition": "答えカード＋テーマ接続カード", "visual_motifs": ["答えカード", "会社員", "テーマカード", "淡い光"], "style": _COMMON_STYLE_FOR_SCHEMA, "negative_rules": ["派手なクイズ番組風にしない", "長文を入れない", "今回テーマ固有語句を固定しない"], "variation_key": "calm-answer-theme-bridge", "final_prompt": final_prompt}
+    scene_bodies = context.get("scene_bodies", {})
+    scene2_body = str(scene_bodies.get("scene_02", "")) if isinstance(scene_bodies, dict) else ""
+    answer_label = str(quiz["answer_label"])
+    public_gap_label = _short_label(scene2_body, "一般的な見方とのズレ", 14)
+    essence_match = re.search(r"本書では(.{1,24}?)(?:。|、|と捉|と考|と示)", scene2_body)
+    essence_label = _short_label(essence_match.group(1) if essence_match else scene2_body, "本書の視点", 14)
+    theme_label = _short_label(str(context["current_theme"]), "今回学ぶテーマ", 14)
+    elements = [f"正解は{quiz['correct_answer']}", answer_label, f"一般的な見方→{essence_label}", f"学ぶテーマ：{theme_label}"]
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation. Do not draw or invent the Book Base logo.
+
+This is Scene 02: reveal the answer to Scene 01 and bridge naturally into the video theme. The image must not end as a simple answer reveal. It must communicate both the correct answer and the meaning behind it, including the gap between the common public image and the book's perspective, then connect to what viewers will learn next. Keep it calm, not a flashy quiz show.
+
+{TEXT_LOCK_INSTRUCTION}:
+{_text_block(elements)}
+
+Composition:
+- Use a two-layer layout. about 50% of the screen is the answer reveal area with a large clear "正解は〜" answer card.
+- The remaining about 50% is a supplemental meaning area linked to the latter half of the narration.
+- Place the answer card on the left or center, and place concise contrast information on the opposite side, such as "一般的な見方 → 本書の視点" plus the next learning theme.
+- Use people, meeting documents, charts, speech bubbles, or elegant cards only when they support the narration's meaning.
+
+Visual motifs:
+- large answer reveal card
+- contrast card showing public image versus book perspective
+- small next-theme card
+- premium business documents, chart, meeting, or speech bubble motifs
+- calm structured whitespace
+
+Avoid repeating Scene 01 composition. Do not make an image with only the correct answer, only A/B/C, or too little text to convey meaning. Avoid unrelated illustrations, long script text, clutter, English text, and logo generation by AI."""
+    return {"scene": 2, "scene_role": "クイズ正解発表と意味づけ・テーマへの橋渡し", "core_message": str(quiz["answer_label"]), "answer_short_label": answer_label, "public_gap_label": public_gap_label, "book_essence_label": essence_label, "next_learning_theme_label": theme_label, "exact_text_elements": elements, "composition": "約50%の正解発表エリア＋約50%の意味づけ補足エリア。正解カードと一般的な見方→本書の視点、学ぶテーマを対比で見せる", "visual_motifs": ["正解発表カード", "一般的な見方と本書の視点の対比カード", "学ぶテーマカード", "会議資料", "グラフ", "吹き出し"], "style": _COMMON_STYLE_FOR_SCHEMA, "negative_rules": ["正解だけを大きく表示して終わらせない", "A/B/Cの答えだけで完結させない", "原稿後半の意味づけと無関係なイラストにしない", "文字が少なすぎて内容が伝わらない画像にしない", "AIにBook Baseロゴを描かせない", "派手なクイズ番組風にしない", "長文を入れない", "今回テーマ固有語句を固定しない"], "variation_key": "answer-meaning-contrast-theme-bridge", "final_prompt": final_prompt}
 
 
 def _scene_03_structured_prompt(context: dict[str, object]) -> dict[str, object]:
@@ -2225,7 +2252,7 @@ def generate_fallback_assets(source_text: str, book_name: str, asset_checks: lis
     author = "著者"
     scene_leads = {
         1: "こんにちは！人生の土台作りをサポートするブックベースです！いきなりですが、人材関連サービスを提供する株式会社R＆Gの2026年の調査で、能力開発や人材育成に問題があると答えた事業所は何％だったと思いますか。A、39.9％。B、59.9％。C、79.9％。管理職だけでなく、後輩指導やチーム作業にも直結する数字です。自分の仕事の土台にも関わります。それでは正解を発表します。",
-        2: "正解はAの思考の整理です。数字や調査結果を見ると、会社員の悩みは能力そのものより、情報をどう扱うかで大きく変わります。今回のテーマは、本の内容を仕事の判断に変える方法です。",
+        2: "正解はAの思考の整理です。これは、会社員の悩みが能力そのものではなく、情報をどう扱うかで大きく変わるということを意味します。一見、知識や根性が足りないと思われがちですが、本書では考える材料の整え方が仕事の判断を左右すると捉えています。そこで今回は、本の内容を仕事の判断に変える方法について学んでいきます。",
         3: f"今回紹介するのは、{author}さんの『{book_title}』こちらの本になります。本書の要点は、知識を増やすだけでなく、目の前の課題に使える形へ整えることです。会社員にとっては、迷いを減らし行動を早める武器になります。",
         4: "著者の経歴で注目したいのは、複雑なテーマを実生活に結びつけて語っている点です。今回の重要ポイントは3つあります。問題を見える化すること、背景を捉えること、最後に小さく実践へ移すことです。",
         5: "重要ポイントの1つ目は問題を見える化することです。仕事で迷う時ほど、原因は能力不足ではなく、考える材料が頭の中で混ざっていることにあります。まず何に困っているのかを言葉にすると、次の行動が見えます。",
@@ -2471,10 +2498,11 @@ scene_07は具体的な研究・調査・公的データに寄せ、出典が弱
 
 scenesは必ず20件の配列にし、各要素はscene_number（1〜20の整数）とbody（見出しを含まない本文）のみで返してください。Python側でscript.mdをレンダリングします。bodyは各シーン180〜220字、本文内改行なしの1段落、箇条書きなしにしてください。
 scene_number=1のbodyは統計クイズ形式で、本文のみ180〜220字にしてください。必ず「こんにちは！人生の土台作りをサポートするブックベースです！いきなりですが、」で始め、調査した会社・団体について「何をしている会社・団体か」を短く説明し、可能な限り最新かつ存在確認できる統計データだけを使ってください。クイズ文末は必ず「だったと思いますか。」にし、選択肢は「A、39.9％。B、59.9％。C、79.9％。」のようにA/B/Cすべて具体的な数字と単位を入れてください。続けてクイズと本文テーマをつなぐ一言を入れ、最後は必ず「それでは正解を発表します。」で締めてください。シーン1では正解を絶対に明かさず、「ある調査によると」、数値のない選択肢、プロンプト指示文の混入を禁止します。
+scene_number=2のbodyは必ず「正解発表 → 正解の意味づけ → 世間のイメージとのズレへのコメント → 本の内容を学ぶ必要性への接続 → 『そこで今回は、〜について学んでいきます。』で締める」の順にしてください。正解発表だけで終わらせず、必ず本書ならではの視点と、なぜこの本の内容を学ぶ必要があるのかを自然なナレーションで入れてください。本文は見出しを含めず180〜220字、改行なし、箇条書きなしにしてください。「省略不可です」「改行入れません」「〜のままにします」などのメタ文、プロンプト指示文、生成条件の説明は絶対に混入させないでください。
 titlesはpattern_a/pattern_b/pattern_cの構造化JSON、scheduleはtime/topicの配列、descriptionはtext/countの構造化JSON、commentは3行の配列で返してください。metadataは空のオブジェクトで構いません（Python側でMarkdownに整形します）。
 thumbnail_commentsはPattern A/B/Cの方向性・コメント・狙い・出力ファイル名・使用画像・needs_reviewを含めてください。
 image_promptsは20件の配列にし、各要素に「シーン番号」「所属ブロック」「ブロックの役割」「重要ポイント番号」「ブロック内での役割」「前ブロックからの理解の流れ」「このシーンで伝える要点」「画像の目的」「推奨構図」「画面内テキスト」「前後画像との差別化」「使用画像」「入力画像チェック」「needs_review」「最終プロンプト」を必ず含めてください。
-画像生成前提として、内部で image_context.json 相当の book_title, author_name, current_theme, quiz, three_key_points, assets を原稿と入力画像チェックから抽出してください。scene_01〜scene_05は「固定役割」と「可変内容」を必ず分離し、具体的な正解文言、テーマ語句、ポイント語句、タイトル、著者名、book_cover/authorパスは毎回の原稿とinputから生成してください。scene_06の固定役割は「重要ポイント①の理由・背景・仕組み説明」です。scene_06ではscene_05の重要ポイント①とscene_06本文から、point_1_label, scene_06_core_message, reason_label, mechanism_label, effect_label, visual_metaphor, visual_structureを毎回抽出してください。visual_structureはcause_to_effect / before_after / hidden_mechanism / obstacle_and_solution / contrastから内容に合わせて1つ選び、構図に反映してください。scene_06のexact_text_elementsは原稿由来の短いラベル3つ以内、各15文字以内にし、特定の本や過去テーマの語句をテンプレートに固定しないでください。scene_06ではgeneric emotional icons、generic business person image、机・付箋・ノートだけの雰囲気画像、scene_05と同じ構図を禁止してください。恒久テンプレートに今回の本だけの言葉を固定しないでください。各sceneのexact_text_elementsを必ず原稿由来で作り、最終プロンプトには必ず次の英文を入れてください: Use only the following Japanese text elements exactly as written. Do not add any other Japanese or English text.
+画像生成前提として、内部で image_context.json 相当の book_title, author_name, current_theme, quiz, three_key_points, assets を原稿と入力画像チェックから抽出してください。scene_01〜scene_05は「固定役割」と「可変内容」を必ず分離し、具体的な正解文言、テーマ語句、ポイント語句、タイトル、著者名、book_cover/authorパスは毎回の原稿とinputから生成してください。scene_02の固定役割は「クイズ正解発表と意味づけ・テーマへの橋渡し」です。scene_02画像は、画面の約50%を正解発表エリア、残り約50%を原稿後半と連動した補足情報エリアにしてください。補足情報エリアには、世間のイメージとのズレ、本書が示す本質、この後に学ぶテーマを短く表示してください。左側または中央に「正解：〜」を大きく置き、反対側に「一般的な見方 → 本書の視点」の対比情報を置いてください。正解だけ、A/B/Cだけ、意味づけと無関係なイラスト、文字が少なすぎる画像は禁止です。Book Baseロゴは固定ロゴを後処理で合成するため、AIにロゴを描かせないでください。scene_06の固定役割は「重要ポイント①の理由・背景・仕組み説明」です。scene_06ではscene_05の重要ポイント①とscene_06本文から、point_1_label, scene_06_core_message, reason_label, mechanism_label, effect_label, visual_metaphor, visual_structureを毎回抽出してください。visual_structureはcause_to_effect / before_after / hidden_mechanism / obstacle_and_solution / contrastから内容に合わせて1つ選び、構図に反映してください。scene_06のexact_text_elementsは原稿由来の短いラベル3つ以内、各15文字以内にし、特定の本や過去テーマの語句をテンプレートに固定しないでください。scene_06ではgeneric emotional icons、generic business person image、机・付箋・ノートだけの雰囲気画像、scene_05と同じ構図を禁止してください。恒久テンプレートに今回の本だけの言葉を固定しないでください。各sceneのexact_text_elementsを必ず原稿由来で作り、最終プロンプトには必ず次の英文を入れてください: Use only the following Japanese text elements exactly as written. Do not add any other Japanese or English text.
 scene_09の固定役割は「重要ポイント②の導入」です。scene_09ではscene_09本文からpoint_2_label, point_2_core_message, point_2_type(method / mindset / habit / process / contrast / skill / framework), visual_metaphorを毎回抽出してください。「重要ポイント②」以外の画像内テキストは原稿由来で動的生成し、exact_text_elementsは3つ以内にしてください。会話、言い換え、受け取り方、視点変更、2人のビジネスパーソン、コミュニケーション、相手に伝える等を恒久テンプレートに固定しないでください。scene_09の最終プロンプトは推奨テンプレートに従い、generic business conversation imageを禁止し、scene_05およびscene_08との差別化を明記してください。
 scene_10の固定役割は「重要ポイント②の具体化」です。scene_10ではscene_09の重要ポイント②とscene_10本文から、point_2_label, scene_10_core_message, example_label, application_label, result_label, visual_structure, visual_metaphorを毎回抽出してください。visual_structureはbefore_after / step_demo / example_scene / comparison / action_map / framework_demoから現在の内容に合わせて1つ選び、構図に反映してください。exact_text_elementsは3つ以内、原稿由来の短い日本語のみとし、英語や長文を入れないでください。split-screen、cause and effect、flowchart、business people in conversation、コミュニケーション、言い換え、視点変更、原因と結果を恒久テンプレートに固定しないでください。scene_10はscene_09の導入カードを繰り返さず、scene_11の実話エピソード画像とも役割を分けてください。
 scene_12の固定役割は「コメントCTA」ですが、コメント促しを主役にしないでください。scene_09〜scene_11の重要ポイント②の流れから、本の内容・学び・考え方・図解・要点整理をメインにし、コメントCTAは右下などの小さな吹き出しや補助エリアに短い自然な日本語1要素までで添えてください。「あなたの経験は？」「{{experience_label}}」「コメントで教えてください」の3点セットを固定化しないでください。visual_structureはlearning_diagram / concept_map / notebook_summary / key_point_cardから現在の原稿に合わせて1つ選んでください。英語テキスト、Similar experience?、Subscribe風表現、キーワード型コメント促し、長文コメント文、原稿のコメントCTA全文、コメントCTAが主役の構図、scene_08の登録CTAに似た構図を禁止してください。scene_12の最終プロンプトは、Learning label、Comment CTA label、Visual structure、Compositionを必ず含め、本の学びが主役であることを明記してください。

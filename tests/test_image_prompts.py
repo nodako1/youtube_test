@@ -62,13 +62,15 @@ def test_scene_02_fallback_prompt_is_structured_and_text_limited():
     scene_02 = prompts[1]
 
     assert scene_02["scene"] == 2
-    assert scene_02["scene_role"] == "クイズ正解発表とテーマへの橋渡し"
+    assert scene_02["scene_role"] == "クイズ正解発表と意味づけ・テーマへの橋渡し"
     assert scene_02["core_message"]
     assert scene_02["exact_text_elements"][0].startswith("正解は")
-    assert len(scene_02["exact_text_elements"]) == 3
+    assert len(scene_02["exact_text_elements"]) == 4
     assert "Use only the following Japanese text elements exactly as written" in scene_02["final_prompt"]
     assert "Correct answer B" not in scene_02["final_prompt"]
     assert "Avoid repeating Scene 01 composition" in scene_02["final_prompt"]
+    assert "about 50% of the screen is the answer reveal area" in scene_02["final_prompt"]
+    assert "一般的な見方" in scene_02["exact_text_elements"][2]
 
 
 def test_scene_03_fallback_prompt_requires_real_cover_composite():
