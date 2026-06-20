@@ -36,6 +36,26 @@ def test_load_rules_includes_image_block_and_scene_rules(tmp_path):
     assert "# image_scene_rules/scene_05.md" in loaded
 
 
+def test_scene_01_fallback_prompt_shows_quiz_numbers_source_and_layout():
+    assets = generate_fallback_assets("本のメモ", "テスト本")
+    prompts = json.loads(assets.image_prompts)
+    scene_01 = prompts[0]
+
+    assert scene_01["scene"] == 1
+    assert scene_01["source_label"] == "株式会社R&G 2026年調査"
+    assert scene_01["exact_text_elements"] == [
+        "能力開発・人材育成に問題がある事業所は何％？",
+        "株式会社R&G 2026年調査",
+        "A 39.9％",
+        "B 59.9％",
+        "C 79.9％",
+    ]
+    assert "do not show only large A/B/C letters" in scene_01["final_prompt"]
+    assert "Always display the numeric values" in scene_01["final_prompt"]
+    assert "left side has a large quiz headline" in scene_01["final_prompt"]
+    assert "Book Base logo in the lower-left corner" in scene_01["final_prompt"]
+
+
 def test_scene_02_fallback_prompt_is_structured_and_text_limited():
     assets = generate_fallback_assets("本のメモ", "テスト本")
     prompts = json.loads(assets.image_prompts)
