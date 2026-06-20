@@ -9,7 +9,7 @@ from typing import Any
 
 from .assets import AssetCheck, asset_checks_by_scene
 from .openai_retry import OpenAIAPICallRecord, create_response_with_retry, format_openai_api_report
-from .quality import SCENE_MAX_CHARS, SCENE_MIN_CHARS, TOTAL_MAX_CHARS, TOTAL_MIN_CHARS, count_scene_body_chars
+from .quality import SCENE_MAX_CHARS, SCENE_MIN_CHARS, TOTAL_MAX_CHARS, TOTAL_MIN_CHARS, _scene_1_quiz_errors, count_scene_body_chars
 
 
 class AIResponseJSONParseError(ValueError):
@@ -65,7 +65,7 @@ def build_image_context(script: str, book_title: str, asset_checks: list[AssetCh
     scene17 = _scene_body(script, 17)
     scene18 = _scene_body(script, 18)
     scene20 = _scene_body(script, 20)
-    options = {letter: _short_label(value, f"選択肢{letter}", 18) for letter, value in re.findall(r"([ABC])\.\s*([^ABC。]+)", scene1)}
+    options = {letter: _short_label(value, f"選択肢{letter}", 18) for letter, value in re.findall(r"([ABC])[、.．]\s*([^ABC。]+)", scene1)}
     correct = (re.search(r"正解は\s*([ABC])", scene2) or re.search(r"正解は([ABC])", scene2))
     point_matches = re.findall(r"[①②③](.*?)(?:、|。|です|$)", scene4)
     labels = [_short_label(m, f"ポイント{i}", 12) for i, m in enumerate(point_matches[:3], 1)]
@@ -82,7 +82,8 @@ def build_image_context(script: str, book_title: str, asset_checks: list[AssetCh
         "author_name": author,
         "current_theme": theme,
         "quiz": {
-            "question": _short_label(scene1.split("A.")[0], "現在の本に合わせた短い問い", 36),
+            "question": _scene_1_question_label(scene1),
+            "source_label": _scene_1_source_label(scene1),
             "correct_answer": correct.group(1) if correct else "B",
             "answer_label": _short_label(scene2, "正解の短い説明", 18),
             "option_a": options.get("A", "選択肢A"),
@@ -104,15 +105,48 @@ def build_image_context(script: str, book_title: str, asset_checks: list[AssetCh
     return context
 
 
+def _scene_1_source_label(scene1: str) -> str:
+    source_area = re.split(r"だったと思いますか。|A[、.．]", scene1, maxsplit=1)[0]
+    year_match = re.search(r"(20\d{2})年", source_area)
+    organization = "統計ソース"
+    org_patterns = [
+        r"(?P<org>株式会社[^の、。]+)",
+        r"(?P<org>厚生労働省|経済産業省|総務省|文部科学省|内閣府|中小企業庁)",
+        r"(?P<org>[^、。]*?(?:有限会社|合同会社|機構|協会|研究所|大学|法人|団体|センター|メディア))の(?:20\d{2}年の)?調査",
+        r"(?:提供する|運営する|実施した|発表した|まとめた)(?P<org>[^、。]*?(?:有限会社|合同会社|機構|協会|研究所|大学|法人|団体|センター|メディア))",
+    ]
+    for pattern in org_patterns:
+        match = re.search(pattern, source_area)
+        if match:
+            organization = match.group("org")
+            break
+    organization = re.sub(r"^(?:人材関連サービスを|情報サービスを|調査を)", "", organization)
+    organization = organization.replace("＆", "&").strip("、。の ")
+    year = f" {year_match.group(1)}年" if year_match else ""
+    label = f"{organization}{year}調査".strip()
+    return label[:24] if label else "統計ソース"
+
+
+def _scene_1_question_label(scene1: str) -> str:
+    question_match = re.search(r"([^。]*だったと思いますか。)", scene1)
+    question = question_match.group(1) if question_match else re.split(r"A[、.．]", scene1, maxsplit=1)[0]
+    question = re.sub(r"^.*?調査で、", "", question)
+    question = question.replace("だったと思いますか。", "？")
+    question = question.replace("や", "・")
+    question = question.replace("と答えた", "")
+    question = re.sub(r"何([％%])？", r"何\1？", question)
+    return _short_label(question, "統計クイズ", 34)
+
+
 def _text_block(elements: list[str]) -> str:
     return "\n".join(f"{i}. {element}" for i, element in enumerate(elements, 1))
 
 
 def _scene_01_structured_prompt(context: dict[str, object]) -> dict[str, object]:
     quiz = context["quiz"]
-    elements = [str(quiz["question"]), f"A. {quiz['option_a']}", f"B. {quiz['option_b']}", f"C. {quiz['option_c']}"]
-    final_prompt = f"Create a video-insert image. Style: {_COMMON_STYLE_FOR_SCHEMA}. This is Scene 01: opening question. Its fixed role is to present a quiz based on statistics, news, survey data, or research-like framing and make viewers think. Do not reveal the answer. Use A/B/C options. {TEXT_LOCK_INSTRUCTION}:\n{_text_block(elements)}\nComposition: office worker thinking, simple chart or survey sheet, clean quiz card, enough whitespace. Avoid showing a correct answer or theme-specific fixed wording."
-    return {"scene": 1, "scene_role": "オープニングの統計・ニュース・調査データ風クイズ", "core_message": str(quiz["question"]), "exact_text_elements": elements, "composition": "考える会社員＋調査風クイズカード", "visual_motifs": ["会社員", "クイズカード", "簡易グラフ", "調査用紙"], "style": _COMMON_STYLE_FOR_SCHEMA, "negative_rules": ["答えを出さない", "長文を入れない", "今回テーマ固有語句を固定しない"], "variation_key": "opening-statistics-quiz", "final_prompt": final_prompt}
+    elements = [str(quiz["question"]), str(quiz["source_label"]), f"A {quiz['option_a']}", f"B {quiz['option_b']}", f"C {quiz['option_c']}"]
+    final_prompt = f"Create a 16:9 landscape video-insert image. Style: refined watercolor illustration, premium calm atmosphere, soft cream background, teal and subtle gold accents, Japanese business book YouTube channel. This is Scene 01: opening statistics quiz. The image must communicate the quiz content at a glance; do not show only large A/B/C letters. Always display the numeric values in each option. Layout: left side has a large quiz headline and three option cards stacked vertically; right side has a thoughtful Japanese office worker or meeting-room people thinking. Place a small natural Book Base logo in the lower-left corner. Do not reveal the answer, do not add explanations, and do not add any text outside exact_text_elements. Extract only the quiz headline, source label, and numeric options from Scene 01; never include the opening greeting, closing sentence, source explanation sentence, or long script text in the image. {TEXT_LOCK_INSTRUCTION}:\n{_text_block(elements)}\nComposition: left 60% quiz panel with headline, small source label, and A/B/C option cards including numbers; right 40% thoughtful office worker or meeting room; clean whitespace; premium beige/teal/gold palette. Avoid showing only A/B/C, avoid correct-answer marks, avoid clutter, avoid English text."
+    return {"scene": 1, "scene_role": "オープニングの統計・ニュース・調査データ風クイズ", "core_message": str(quiz["question"]), "source_label": str(quiz["source_label"]), "exact_text_elements": elements, "composition": "左側に大きなクイズ見出しと数値入り選択肢カード、右側に考え込む会社員、左下にBook Baseロゴ", "visual_motifs": ["大きなクイズ見出し", "数値入り選択肢カード", "考え込む会社員", "会議室", "左下Book Baseロゴ"], "style": _COMMON_STYLE_FOR_SCHEMA, "negative_rules": ["答えを出さない", "A/B/Cだけを大きく表示しない", "選択肢の数字を省略しない", "長文を入れない", "今回テーマ固有語句を固定しない"], "variation_key": "opening-statistics-quiz-left-card-right-person", "final_prompt": final_prompt}
 
 
 def _scene_02_structured_prompt(context: dict[str, object]) -> dict[str, object]:
@@ -1011,6 +1045,8 @@ def validate_bookbase_script(script: str) -> list[str]:
             errors.append(f"シーン{number}：箇条書きがあります")
         count = count_scene_body_chars(body)
         total += count
+        if number == 1:
+            errors.extend(f"シーン1：{error}" for error in _scene_1_quiz_errors(body))
         if count < SCENE_MIN_CHARS:
             errors.append(f"シーン{number}：{count}字。{SCENE_MIN_CHARS}字未満")
         elif count > SCENE_MAX_CHARS:
@@ -1879,6 +1915,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         "negative_rules": structured_prompt["negative_rules"] if structured_prompt else ["長文を入れない", "指定外の文字を入れない", "前後シーンと同じ構図にしない"],
         "variation_key": structured_prompt["variation_key"] if structured_prompt else differentiation,
         "final_prompt": prompt,
+        **({"source_label": scene_01_prompt["source_label"]} if scene_01_prompt else {}),
         **({"reference_image_required": scene_03_prompt["reference_image_required"], "reference_image_path": scene_03_prompt["reference_image_path"], "post_process": scene_03_prompt["post_process"]} if scene_03_prompt else {}),
         **({"reference_image_required": scene_04_prompt["reference_image_required"], "reference_image_path": scene_04_prompt["reference_image_path"], "reference_image_usage": scene_04_prompt["reference_image_usage"]} if scene_04_prompt else {}),
         **({"fixed_role": scene_06_prompt["fixed_role"], "point_1_label": scene_06_prompt["point_1_label"], "scene_06_core_message": scene_06_prompt["scene_06_core_message"], "reason_label": scene_06_prompt["reason_label"], "mechanism_label": scene_06_prompt["mechanism_label"], "effect_label": scene_06_prompt["effect_label"], "visual_metaphor": scene_06_prompt["visual_metaphor"], "visual_structure": scene_06_prompt["visual_structure"]} if scene_06_prompt else {}),
@@ -2187,7 +2224,7 @@ def generate_fallback_assets(source_text: str, book_name: str, asset_checks: lis
     book_title = book_name.replace("_", " ")
     author = "著者"
     scene_leads = {
-        1: "人材サービス会社が社会人に行った調査では、仕事の悩みは知識不足より整理不足から生まれることが多いとされています。では、忙しい会社員が最初に見直すべきものは何でしょうか。A.思考の整理 B.根性 C.残業時間。それでは正解を発表します。",
+        1: "こんにちは！人生の土台作りをサポートするブックベースです！いきなりですが、人材関連サービスを提供する株式会社R＆Gの2026年の調査で、能力開発や人材育成に問題があると答えた事業所は何％だったと思いますか。A、39.9％。B、59.9％。C、79.9％。管理職だけでなく、後輩指導やチーム作業にも直結する数字です。自分の仕事の土台にも関わります。それでは正解を発表します。",
         2: "正解はAの思考の整理です。数字や調査結果を見ると、会社員の悩みは能力そのものより、情報をどう扱うかで大きく変わります。今回のテーマは、本の内容を仕事の判断に変える方法です。",
         3: f"今回紹介するのは、{author}さんの『{book_title}』こちらの本になります。本書の要点は、知識を増やすだけでなく、目の前の課題に使える形へ整えることです。会社員にとっては、迷いを減らし行動を早める武器になります。",
         4: "著者の経歴で注目したいのは、複雑なテーマを実生活に結びつけて語っている点です。今回の重要ポイントは3つあります。問題を見える化すること、背景を捉えること、最後に小さく実践へ移すことです。",
@@ -2433,6 +2470,7 @@ scene_07は具体的な研究・調査・公的データに寄せ、出典が弱
 完成前に、読みたくなる言い回し、一文の長さ、句読点、接続詞、語尾、会社員目線、AIっぽさ、本の内容との一致、シーン役割、次シーンへの流れを5点満点で自己採点し、平均4点未満なら再生成してください。
 
 scenesは必ず20件の配列にし、各要素はscene_number（1〜20の整数）とbody（見出しを含まない本文）のみで返してください。Python側でscript.mdをレンダリングします。bodyは各シーン180〜220字、本文内改行なしの1段落、箇条書きなしにしてください。
+scene_number=1のbodyは統計クイズ形式で、本文のみ180〜220字にしてください。必ず「こんにちは！人生の土台作りをサポートするブックベースです！いきなりですが、」で始め、調査した会社・団体について「何をしている会社・団体か」を短く説明し、可能な限り最新かつ存在確認できる統計データだけを使ってください。クイズ文末は必ず「だったと思いますか。」にし、選択肢は「A、39.9％。B、59.9％。C、79.9％。」のようにA/B/Cすべて具体的な数字と単位を入れてください。続けてクイズと本文テーマをつなぐ一言を入れ、最後は必ず「それでは正解を発表します。」で締めてください。シーン1では正解を絶対に明かさず、「ある調査によると」、数値のない選択肢、プロンプト指示文の混入を禁止します。
 titlesはpattern_a/pattern_b/pattern_cの構造化JSON、scheduleはtime/topicの配列、descriptionはtext/countの構造化JSON、commentは3行の配列で返してください。metadataは空のオブジェクトで構いません（Python側でMarkdownに整形します）。
 thumbnail_commentsはPattern A/B/Cの方向性・コメント・狙い・出力ファイル名・使用画像・needs_reviewを含めてください。
 image_promptsは20件の配列にし、各要素に「シーン番号」「所属ブロック」「ブロックの役割」「重要ポイント番号」「ブロック内での役割」「前ブロックからの理解の流れ」「このシーンで伝える要点」「画像の目的」「推奨構図」「画面内テキスト」「前後画像との差別化」「使用画像」「入力画像チェック」「needs_review」「最終プロンプト」を必ず含めてください。
