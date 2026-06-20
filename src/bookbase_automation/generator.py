@@ -452,6 +452,45 @@ def _select_scene_06_visual_structure(scene6_body: str) -> str:
     return "cause_to_effect"
 
 
+
+def _deep_dive_visual_structure(body: str) -> str:
+    if re.search(r"前|後|変化|改善|比べ|違い|Before|After", body, flags=re.I):
+        return "before_after"
+    if re.search(r"手順|ステップ|順番|まず|次に|最後|流れ|プロセス|原因|結果", body):
+        return "flow_diagram"
+    if re.search(r"分け|区別|要素|構造|仕組み|内側|型|フレーム|判断軸|基準", body):
+        return "decomposition"
+    if re.search(r"誤解|ありがち|ではなく|一方|逆に|対比|悪い|良い|正しい", body):
+        return "contrast"
+    return "metaphor"
+
+
+def _deep_dive_composition(visual_structure: str, scene: int) -> str:
+    base = {
+        "before_after": "左右に誤解や実践前と、本書の視点や実践後を置き、中央に変化を示す細い矢印を配置する。人物・場面イラストを必ず添え、下部にまとめ帯を置く。",
+        "flow_diagram": "原因、構造、実践、結果を3つ以内のカードで流れとして見せ、場面イラストと接続線で理解できるようにし、下部にまとめ帯を置く。",
+        "decomposition": "中心概念を複数要素に分解した図を中央に置き、左右に誤解と正しい見方、下部にまとめ帯を配置する。",
+        "contrast": "悪い例と良い例、誤解と本書の視点を上品な対比で示し、人物の表情や行動の違いも小さく描き、下部にまとめ帯を置く。",
+        "metaphor": "迷路、階段、橋、地図、設計図、天秤、コンパスなど現在内容に合う比喩を中心に、短いラベルと人物場面を組み合わせ、下部にまとめ帯を置く。",
+    }
+    avoid = {6: "Scene 05の導入カード", 10: "Scene 09の導入カードとScene 11の実話カード", 14: "Scene 13の導入カードとScene 18の全体実践"}[scene]
+    return base.get(visual_structure, base["metaphor"]) + f" {avoid}とは明確に違う構図にする。"
+
+
+def _deep_dive_fields(body: str, point_label: str, point_number: str, scene: int) -> dict[str, object]:
+    clauses = [c.strip() for c in re.split(r"。|、", body) if c.strip()]
+    main = _short_label(body, point_label, 16)
+    misconception = _short_label(next((c for c in clauses if re.search(r"誤解|ありがち|思いがち|つい|多く|普通|一般", c)), point_label), "誤解", 14)
+    correct = _short_label(next((c for c in clauses if re.search(r"本書|大事|重要|正しく|実際|必要|分け|判断", c)), body), "本書の視点", 14)
+    framework = [_short_label(c, main, 12) for c in clauses if re.search(r"分け|手順|判断|基準|構造|仕組み|原因|実践|見直", c)][:3]
+    while len(framework) < 2:
+        framework.append(["構造を分ける", "判断軸を持つ", "実践へ移す"][len(framework)])
+    flow = [_short_label(c, main, 10) for c in clauses if re.search(r"まず|次に|最後|流れ|原因|結果|ため", c)][:3]
+    before_after = f"{misconception} → {correct}"
+    takeaway = _short_label(clauses[-1] if clauses else body, main, 18)
+    visual_structure = _deep_dive_visual_structure(body)
+    return {"scene_number": scene, "point_number": point_number, "main_concept": main, "misconception": misconception, "correct_view": correct, "framework_elements": framework[:3], "process_flow": flow, "before_after": before_after, "takeaway_label": takeaway, "visual_structure": visual_structure}
+
 def _scene_06_composition(visual_structure: str) -> str:
     mapping = {
         "cause_to_effect": "左から右へ、理由・仕組み・結果が自然に流れる構図。3つの短いカードを細い線でつなぎ、scene_05の導入カード構図とは違う因果の流れを見せる。",
@@ -614,7 +653,7 @@ Composition:
 Visual motifs:
 elegant evidence card, report documents, simple abstract charts, calm business desk, subtle data icons, enough whitespace, premium watercolor texture
 
-Keep the image clean and easy to understand at a glance. Use minimal text only. Do not place long script text. Avoid clutter, avoid fake detailed charts, avoid invented statistics, avoid hard-coded psychology research, and avoid repeating the Scene 06 composition."""
+Keep the image clean and easy to understand at a glance. Use minimal Japanese text only. Do not place long script text. Avoid clutter, avoid fake detailed charts, avoid invented statistics, avoid hard-coded psychology research, and avoid repeating the Scene 06 composition."""
     return {"scene": 7, "fixed_role": "重要ポイント①の根拠補強", "scene_role": "重要ポイント①の根拠補強", "point_1_label": point_1_label, "core_message": core_message, "scene_07_core_message": core_message, "evidence_type": evidence_type, "evidence_label": elements[0], "key_finding_label": elements[2], "source_confidence": source_confidence, "visual_structure": visual_structure, "exact_text_elements": elements, "composition": composition, "visual_motifs": ["エビデンスカード", "資料", "抽象グラフ", "データアイコン", "余白"], "style": _COMMON_STYLE_FOR_SCHEMA, "negative_rules": ["心理学研究を固定しない", "架空の数字を作らない", "出典不明の研究名を入れない", "証明と断定しない", "scene_06と同じ構図にしない"], "variation_key": f"scene-07-{visual_structure}-{evidence_type}-evidence", "final_prompt": final_prompt}
 
 

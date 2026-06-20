@@ -171,16 +171,16 @@ def test_scene_06_fallback_prompt_explains_key_point_1_mechanism():
     scene_06 = prompts[5]
 
     assert scene_06["scene"] == 6
-    assert scene_06["fixed_role"] == "重要ポイント①の理由・背景・仕組み説明"
-    assert scene_06["scene_role"] == "重要ポイント①の理由・背景・仕組み説明"
+    assert scene_06["fixed_role"] == "重要ポイント①の深掘り"
+    assert scene_06["scene_role"] == "重要ポイント①の深掘り"
     assert scene_06["point_1_label"]
     assert scene_06["scene_06_core_message"]
     assert scene_06["visual_structure"] in {
-        "cause_to_effect",
         "before_after",
-        "hidden_mechanism",
-        "obstacle_and_solution",
+        "flow_diagram",
+        "decomposition",
         "contrast",
+        "metaphor",
     }
     assert 1 <= len(scene_06["exact_text_elements"]) <= 3
     assert all(len(label) <= 15 for label in scene_06["exact_text_elements"])
@@ -267,16 +267,16 @@ def test_scene_10_fallback_prompt_concretizes_key_point_2_dynamically():
     scene_10 = prompts[9]
 
     assert scene_10["scene"] == 10
-    assert scene_10["fixed_role"] == "重要ポイント②の具体化"
+    assert scene_10["fixed_role"] == "重要ポイント②の深掘り"
     assert scene_10["point_2_label"]
     assert scene_10["scene_10_core_message"]
     assert scene_10["example_label"]
     assert scene_10["application_label"]
     assert scene_10["result_label"]
-    assert scene_10["visual_structure"] in {"before_after", "step_demo", "example_scene", "comparison", "action_map", "framework_demo"}
+    assert scene_10["visual_structure"] in {"before_after", "flow_diagram", "decomposition", "contrast", "metaphor"}
     assert len(scene_10["exact_text_elements"]) <= 3
     assert "Use only the following Japanese text elements exactly as written" in scene_10["final_prompt"]
-    assert "Do not create a generic cause-and-effect flowchart unless the current script actually requires it" in scene_10["final_prompt"]
+    assert "misconception-versus-correct-view diagram" in scene_10["final_prompt"]
     assert "avoid generic split-screen flowcharts" in scene_10["final_prompt"]
     assert "avoid generic business people" in scene_10["final_prompt"]
     assert "avoid repeating the Scene 09 composition" in scene_10["final_prompt"]
