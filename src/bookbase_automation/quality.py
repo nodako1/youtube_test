@@ -138,6 +138,25 @@ def _ordered_scene_bodies(script: str) -> list[str]:
 
 
 
+
+def _key_point_intro_depth_ok(body: str) -> bool:
+    if not body:
+        return False
+    has_belief = any(token in body for token in ["思い込み", "誤解", "ありがち", "多く", "つい", "普通", "一般", "現場"])
+    has_structure = any(token in body for token in ["構造", "仕組み", "背景", "本質", "なぜ", "本書では", "前提"])
+    has_consequence = any(token in body for token in ["放置", "見ない", "知らない", "続ける", "失", "崩", "ズレ", "つなが", "起き"])
+    has_takeaway = any(token in body for token in ["理解する必要", "見直す", "学ぶ", "まず", "ここを", "だからこそ"])
+    no_meta = not any(token in body for token in ["省略", "改行", "プロンプト", "指示文", "のままにします"])
+    shallow_end = body.endswith(("大切です。", "重要です。", "意識しましょう。"))
+    return has_belief and has_structure and has_consequence and has_takeaway and no_meta and not shallow_end
+
+def _intro_image_prompt_depth_ok(items: list[dict[str, object]], scene: int) -> bool:
+    item = next((it for it in items if str(it.get("シーン番号", it.get("scene", ""))) == str(scene)), None)
+    if not item:
+        return False
+    text = json.dumps(item, ensure_ascii=False)
+    return all(token in text for token in ["重要ポイント", "主張", "図解", "まとめ", "誤解"]) and not any(token in text for token in ["見出しだけ", "抽象背景だけ"] if token == text.strip())
+
 def _load_image_prompt_items(image_prompts: str) -> list[dict[str, object]]:
     try:
         data = json.loads(image_prompts)
@@ -432,12 +451,15 @@ def build_quality_report(script: str, titles: str, image_prompts: str, descripti
         CheckResult("シーン3本紹介固定文", "OK" if "今回紹介するのは、" in scene_3 and "こちらの本になります。" in scene_3 else "NG", "固定文を確認してください"),
         CheckResult("シーン4著者紹介と3ポイント", "OK" if "著者" in scene_4 and "3つ" in scene_4 else "NG", "著者紹介と3つの重要ポイントを確認してください"),
         CheckResult("シーン5冒頭固定", "OK" if scene_5.startswith(SCENE_5_PREFIX) else "NG", f"必須開始文: {SCENE_5_PREFIX}"),
+        CheckResult("シーン5導入の深さ", "OK" if _key_point_intro_depth_ok(scene_5) else "NG", "主張→誤解→構造→悪影響→学ぶ意味を入れてください"),
         CheckResult("シーン7研究・データ補強", "OK" if any(token in scene_7 for token in ["研究", "調査", "データ", "論文", "公的"]) else "NG", "研究・データ補強を入れてください"),
         CheckResult("シーン8チャンネル登録固定文", "OK" if SCENE_8_CTA in scene_8 else "NG", "固定CTAを変えずに入れてください"),
         CheckResult("シーン9冒頭固定", "OK" if scene_9.startswith(SCENE_9_PREFIX) else "NG", f"必須開始文: {SCENE_9_PREFIX}"),
+        CheckResult("シーン9導入の深さ", "OK" if _key_point_intro_depth_ok(scene_9) else "NG", "主張→誤解→構造→悪影響→学ぶ意味を入れてください"),
         CheckResult("シーン11実話エピソード", "OK" if any(token in scene_11 for token in ["実話", "経営者", "歴史", "著名人", "有名", "ビル・ゲイツ", "孫正義", "ウォーレン・バフェット"]) else "NG", "確認済み実話を入れてください"),
         CheckResult("シーン12コメント促進形式", "OK" if "経験はありますか？" in scene_12 and "もし似たような経験があれば、ぜひコメント欄で教えてください。" in scene_12 else "NG", "固定フォーマットを確認してください"),
         CheckResult("シーン13冒頭固定", "OK" if scene_13.startswith(SCENE_13_PREFIX) else "NG", f"必須開始文: {SCENE_13_PREFIX}"),
+        CheckResult("シーン13導入の深さ", "OK" if _key_point_intro_depth_ok(scene_13) else "NG", "主張→誤解→構造→悪影響→学ぶ意味を入れてください"),
         CheckResult("シーン15名言補強", "OK" if "名言" in scene_15 or "言葉" in scene_15 else "NG", "確認済み名言を入れてください"),
         CheckResult("シーン16本書案内固定文", "OK" if SCENE_16_BOOK_GUIDE in scene_16 and "概要欄" not in scene_16 else "NG", "本書案内固定文と概要欄誘導なしを確認してください"),
         CheckResult("シーン17おさらい開始", "OK" if scene_17.startswith(SCENE_17_PREFIX) else "NG", f"必須開始文: {SCENE_17_PREFIX}"),
@@ -453,6 +475,7 @@ def build_quality_report(script: str, titles: str, image_prompts: str, descripti
         CheckResult("画像プロンプト必須メタ情報", "OK" if image_items and not image_field_errors else "NG", "全項目あり" if not image_field_errors else "; ".join(image_field_errors[:3])),
         CheckResult("画像プロンプト所属ブロック", "OK" if image_items and not image_block_errors else "NG", "全シーン一致" if not image_block_errors else "; ".join(image_block_errors[:5])),
         CheckResult("重要ポイント画像の理解の流れ", "OK" if image_items and _image_prompt_flow_ok(image_items) else "NG", "重要ポイント1=土台、2=構造、3=実践の流れを確認してください"),
+        CheckResult("導入画像5/9/13の情報量", "OK" if image_items and all(_intro_image_prompt_depth_ok(image_items, scene) for scene in [5, 9, 13]) else "NG", "番号・主張・補足・図解・まとめ帯・誤解対比を入れてください"),
     ]
     lines = [
         "# 品質チェック結果",
