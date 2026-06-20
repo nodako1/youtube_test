@@ -2,124 +2,68 @@
 
 ## 固定役割
 
-scene_06は、重要ポイント①の理由・背景・仕組みを説明するシーンである。scene_05で提示した重要ポイント①について、「なぜそうなのか」「何が起きているのか」「どういう構造なのか」を一目で伝える。
-
-特定の本の内容を固定テンプレートに入れず、毎回の原稿から可変内容を抽出する。
+scene_06は、直前の重要ポイントを一段深く説明する深掘り画像である。scene_06はscene_05の重要ポイント①、scene_10はscene_09の重要ポイント②、scene_14はscene_13の重要ポイント③に対応する。単なる見出しカードや抽象背景ではなく、原稿の中核概念を短い言葉、図解、人物・場面イラストに変換し、1枚で理解が進む画像にする。
 
 ## 毎回抽出する可変データ
 
-scene_06用に以下を毎回作成する。
-
 ```json
 {
-  "scene": 6,
-  "fixed_role": "重要ポイント①の理由・背景・仕組み説明",
-  "point_1_label": "重要ポイント①を短く表す言葉",
-  "scene_06_core_message": "scene_06で一番伝えるべき理由・背景・仕組み",
-  "reason_label": "理由を短く表す言葉",
-  "mechanism_label": "仕組みや背景を短く表す言葉",
-  "effect_label": "結果や影響を短く表す言葉",
-  "visual_metaphor": "この内容に合う視覚的な比喩",
-  "visual_structure": "cause_to_effect / before_after / hidden_mechanism / obstacle_and_solution / contrast のいずれか",
-  "exact_text_elements": ["短い文字1", "短い文字2", "短い文字3"]
+  "scene_number": 6,
+  "point_number": "重要ポイント①",
+  "main_concept": "このシーンの中核概念",
+  "misconception": "よくある誤解・悪い例",
+  "correct_view": "本書が示す正しい見方",
+  "framework_elements": ["分解して見せる要素"],
+  "process_flow": ["流れや手順がある場合のステップ"],
+  "before_after": "変化を見せられる場合のBefore / After",
+  "visual_metaphor": "内容に合う比喩表現",
+  "takeaway_label": "下部に置くまとめの一言",
+  "visual_structure": "before_after / flow_diagram / decomposition / contrast / metaphor のいずれか",
+  "exact_text_elements": ["大きな主張", "図解ラベル", "まとめ帯"]
 }
 ```
 
-## ラベル作成ルール
+## 必須構成
 
-- `exact_text_elements` は毎回の原稿から生成する。
-- 1つのラベルは原則8〜12文字程度、長くても15文字以内。
-- 3つ以内。
-- 説明文ではなく短い見出しにする。
-- 原稿本文をそのまま長く入れない。
-- 過去動画のキーワードを使い回さない。
-- 今回の本に関係ない汎用語だけで済ませない。
+1. 大きな主張：原稿の核心を短く強く表示し、見出しだけでなく本書の視点が伝わる言葉にする。
+2. 図解要素：Before / After、悪い例 / 良い例、フロー図、分解図、判断軸、因果関係、3ステップのいずれかを内容に合わせて使う。
+3. 人物・場面イラスト：職場、会話、会議、家庭、学習、お金、習慣など、本のテーマに合った具体的な場面を描き、抽象背景だけで終わらせない。
+4. 短い補足テキスト：図解の意味が分かる短いキーワードを配置し、情報を削るのではなく吸収しやすい言葉に変換する。
+5. 下部のまとめ帯：このシーンで一番覚えてほしい一文を入れる。
 
-## visual_structure の選び方
+## レイアウト選択
 
-- `cause_to_effect`：理由から結果への流れを見せる。原因と結果がある場合に使う。
-- `before_after`：変化前と変化後を比較する。やる前と後、気づく前と後の差を見せたい場合に使う。
-- `hidden_mechanism`：見えない仕組みを図解する。心理、構造、思考、習慣、感情、判断などを扱う場合に使う。
-- `obstacle_and_solution`：障害と解決の関係を見せる。詰まりや障害を取り除くイメージが合う場合に使う。
-- `contrast`：2つの状態や考え方の違いを並べる。勘違いと正しい見方、普通のやり方と本書の視点を比べる場合に使う。
+- `before_after`：誤ったやり方と改善後を左右で比較する。
+- `flow_diagram`：入力 → 行動 → 結果、原因 → プロセス → 成果を流れで見せる。
+- `decomposition`：似ている概念や構成要素を分けて見せる。
+- `contrast`：悪い例と良い例、誤解と本書の視点を比較する。
+- `metaphor`：迷路、階段、橋、地図、設計図、天秤、盾、コンパスなどで抽象概念を視覚化する。
 
-## 推奨プロンプトテンプレート
+## テーマ別視覚化
 
-```text
-Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
+コミュニケーション系は吹き出しや表情、マネジメント系は会議・設計図・チーム、お金・投資系は積立・グラフ・リスクとリターン、習慣・自己啓発系は階段・ループ・日々の行動、思考法系は地図・ノート・分岐、ストレス・心理系は心・脳・負荷・回復、時間術系は時計・予定表・優先順位を、現在の本の内容に合う場合だけ使う。
 
-This is Scene 06. Its fixed role is to explain the reason, background, or mechanism behind Key Point 1. The image should visually clarify why the first key point matters, based on the current script. Do not create a generic business person image. Do not hard-code any topic from a previous book. Build the visual message from the current script only.
+## デザインルール
 
-Current Key Point 1:
-{point_1_label}
+16:9固定。水彩画風。淡いクリーム背景。ティール・ゴールドをアクセントにし、高級感のあるビジネス書要約チャンネルらしい雰囲気にする。文字は読みやすく、情報量とのバランスを取る。Book Baseロゴは固定ロゴ画像を後処理で合成するため、AIに描かせない。
 
-Current Scene 06 core message:
-{scene_06_core_message}
+## 禁止事項
 
-Use only the following Japanese text elements exactly as written. Do not add any other Japanese or English text:
-1. {reason_label}
-2. {mechanism_label}
-3. {effect_label}
-
-Visual structure:
-{visual_structure}
-
-Visual metaphor:
-{visual_metaphor}
-
-Composition:
-{scene_06_composition}
-
-Visual motifs:
-{visual_motifs}
-
-Keep the image clean and easy to understand at a glance. Use minimal text only. Do not place long script text. Avoid clutter, avoid generic emotional icons, avoid a generic desk-only scene, avoid over-explaining, and avoid repeating the Scene 05 composition.
-```
-
-## 構図作成ルール
-
-- `cause_to_effect`：左から右へ、理由・仕組み・結果が自然に流れる構図にする。
-- `hidden_mechanism`：表面上の人物や仕事場面の背後に、内側の仕組みを示すカードや線を配置する。
-- `contrast`：左側に一般的な状態、右側に本書が示す視点を配置する。
-- その他の構造でも、scene_05と構図を明確に変える。
-
-## 避けること
-
-- 特定の本の内容を固定で入れる。
-- 過去テーマの語句を使い回す。
-- `emotional expression icons` を安易に並べる。
-- ただのビジネス人物イラストにする。
-- 机、付箋、ノートだけの雰囲気画像にする。
-- scene_05と同じ構図にする。
-- 研究データやグラフ中心の構図にする。
-- 文字が多い図解にする。
-- サムネイルのような煽りデザインにする。
-
-## 画像生成前チェック
-
-scene_06の画像プロンプトを作る前に、必ず以下を確認する。
-
-1. scene_05の重要ポイント①を取得しているか。
-2. scene_06本文から理由・背景・仕組みを抽出しているか。
-3. exact_text_elementsが今回の原稿由来か。
-4. 過去の本のキーワードが残っていないか。
-5. scene_05と構図が被っていないか。
+大きな見出しだけの画像、抽象背景だけの画像、情報量が少なすぎる画像、原稿の内容と関係が薄いイラスト、ただのタイトルカード、特定の本のビジュアル固定、本が変わっても同じ構図になること、長文テキスト、英語テキスト、プロンプト指示文の画像内混入を禁止する。
 
 ## quality_report.md への記録
-
-`quality_report.md` に以下を記録する。
 
 ```text
 【scene_06 画像品質チェック】
 
-scene_06固定役割に合っている：OK / NG
-現在の原稿内容に沿っている：OK / NG
-重要ポイント①の理由・背景・仕組みが見える：OK / NG
-可変ラベルが原稿から生成されている：OK / NG
+深掘りシーンの固定役割に合っている：OK / NG
+直前の重要ポイントを深掘りしている：OK / NG
+原稿内容を図解・人物・短文に変換している：OK / NG
+見出しだけで終わっていない：OK / NG
+Before/After・フロー・対比・分解図・メタファーのいずれかがある：OK / NG
+テーマに合った具体場面がある：OK / NG
+下部にまとめ帯がある：OK / NG
+毎回同じ構図になっていない：OK / NG
 過去テーマのハードコードなし：OK / NG
 指定外テキストなし：OK / NG
-文字量が少ない：OK / NG
-visual_structure が適切：OK / NG
-scene_05と構図が違う：OK / NG
-generic business image になっていない：OK / NG
 ```
