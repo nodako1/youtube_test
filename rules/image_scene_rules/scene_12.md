@@ -92,7 +92,7 @@ scene_12用に毎回以下のデータを作成する。
 ## 推奨プロンプトテンプレート
 
 ```text
-Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 12. Its fixed role is a comment CTA, but the CTA must not be the main subject. Make the book's learning, key idea, diagram, and conceptual summary from Scenes 09-11 the visual focus. Add the comment prompt only as one small supporting Japanese text element in a lower-corner speech bubble or small auxiliary area. Do not hard-code any topic from a previous book. Build all labels from the current script only.
 

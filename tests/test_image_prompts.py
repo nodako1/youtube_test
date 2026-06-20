@@ -16,7 +16,7 @@ def test_fallback_image_prompts_include_block_metadata():
     assert prompts[4]["所属ブロック"] == "シーン5〜8：重要ポイント1"
     assert prompts[8]["重要ポイント番号"] == "重要ポイント2"
     assert prompts[12]["推奨構図"].startswith("構図C：実践への橋渡し型")
-    assert "Book Base logo" in prompts[0]["最終プロンプト"]
+    assert "fixed Book Base logo will be composited" in prompts[0]["最終プロンプト"]
     assert "前後画像との差別化" in prompts[0]
 
 

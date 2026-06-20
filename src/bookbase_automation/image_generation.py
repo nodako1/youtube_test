@@ -12,6 +12,7 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
+from .config import BOOK_BASE_LOGO_BOTTOM_MARGIN, BOOK_BASE_LOGO_LEFT_MARGIN, BOOK_BASE_LOGO_PATH, BOOK_BASE_LOGO_WIDTH
 from .input_assets import FlatInputSelection
 from .openai_retry import OpenAIAPICallRecord, edit_image_with_retry, format_openai_api_report, generate_image_with_retry
 
@@ -56,7 +57,7 @@ def _common_style() -> str:
     return (
         "16:9 landscape, watercolor illustration, premium calm atmosphere for Japanese business book YouTube channel, "
         "cream white, beige, teal and subtle gold palette, minimal concise Japanese text only, one clear message, "
-        "do not place long script text, vary composition from adjacent scenes, include a small natural Book Base logo"
+        "do not place long script text, vary composition from adjacent scenes, reserve the lower-left corner for the fixed Book Base logo that will be composited after generation"
     )
 
 
@@ -141,7 +142,7 @@ def _thumbnail_a_prompt(selection: FlatInputSelection) -> tuple[str, tuple[Path,
     refs = (selection.current_book_cover,) if selection.current_book_cover else ()
     supporting_motifs = "\n".join(f"- {motif}" for motif in data["supporting_motifs"])
     exact_text = "\n".join(f"{index}. {text}" for index, text in enumerate(data["exact_text_elements"], start=1))
-    prompt = f"""Create a 16:9 landscape YouTube thumbnail image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige base with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    prompt = f"""Create a 16:9 landscape YouTube thumbnail image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige base with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is thumbnail pattern A: loss aversion. Its fixed role is to trigger curiosity through loss aversion, making viewers feel that they may be wasting effort, overlooking something important, or heading in the wrong direction. The image must encourage clicks, but it must not become a cheap, noisy, sensational YouTube thumbnail.
 
@@ -178,7 +179,7 @@ Visual motifs:
 - premium watercolor texture
 - calm structured whitespace
 - subtle visual tension
-- refined Book Base design language
+- refined Book Base design language, with no AI-rendered logo
 
 Keep the thumbnail highly readable at a glance. Use minimal concise Japanese text only. Do not place long script text. Avoid clutter, avoid English text, avoid cheap clickbait design, avoid broken Japanese text, avoid overly loud red-yellow warning graphics, avoid flames, explosions, excessive arrows, and avoid making the thumbnail look like a generic ad."""
     return prompt, refs
@@ -235,7 +236,7 @@ def _thumbnail_b_prompt(selection: FlatInputSelection) -> tuple[str, tuple[Path,
     refs = (selection.current_book_cover,) if selection.current_book_cover else ()
     supporting_motifs = "\n".join(f"- {motif}" for motif in data["supporting_motifs"])
     exact_text = "\n".join(f"{index}. {text}" for index, text in enumerate(data["exact_text_elements"], start=1))
-    prompt = f"""Create a 16:9 landscape YouTube thumbnail image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige base with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    prompt = f"""Create a 16:9 landscape YouTube thumbnail image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige base with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is thumbnail pattern B: benefit. Its fixed role is to communicate the positive benefit viewers may gain from the book, making them feel that their work, thinking, or daily life may become lighter, clearer, or better. The image must encourage clicks, but it must not become a cheap self-help thumbnail or an overhyped success-appeal design.
 
@@ -274,7 +275,7 @@ Visual motifs:
 - refined positive atmosphere
 - elegant Book Base design language
 
-Keep the thumbnail highly readable at a glance. Use minimal concise Japanese text only. Do not place long script text. Avoid clutter, avoid English text, avoid cheap motivational design, avoid broken Japanese text, avoid overly flashy success imagery, avoid exaggerated life-changing claims, avoid large flashy Book Base logos, and avoid making the thumbnail look like a generic ad or a normal explanatory scene image."""
+Keep the thumbnail highly readable at a glance. Use minimal concise Japanese text only. Do not place long script text. Avoid clutter, avoid English text, avoid cheap motivational design, avoid broken Japanese text, avoid overly flashy success imagery, avoid exaggerated life-changing claims, avoid AI-rendered Book Base logos, and avoid making the thumbnail look like a generic ad or a normal explanatory scene image."""
     return prompt, refs
 
 
@@ -330,7 +331,7 @@ def _thumbnail_c_prompt(selection: FlatInputSelection) -> tuple[str, tuple[Path,
     refs = (selection.current_book_cover,) if selection.current_book_cover else ()
     supporting_motifs = "\n".join(f"- {motif}" for motif in data["supporting_motifs"])
     exact_text = "\n".join(f"{index}. {text}" for index, text in enumerate(data["exact_text_elements"], start=1))
-    prompt = f"""Create a 16:9 landscape YouTube thumbnail image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige base with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    prompt = f"""Create a 16:9 landscape YouTube thumbnail image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige base with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is thumbnail pattern C: contrarian curiosity. Its fixed role is to trigger curiosity through an unexpected or slightly contrarian idea, making viewers pause and want to know the meaning behind the phrase. The image must encourage clicks, but it must not become a cheap sensational thumbnail or a meaningless quirky design.
 
@@ -370,7 +371,7 @@ Visual motifs:
 - premium watercolor texture
 - calm structured whitespace
 - subtle intellectual surprise
-- refined Book Base design language
+- refined Book Base design language, with no AI-rendered logo
 
 Keep the thumbnail highly readable at a glance. Use minimal concise Japanese text only. Do not place long script text. Avoid clutter, avoid English text, avoid cheap clickbait design, avoid broken Japanese text, avoid meaningless shock-value composition, avoid exclamation marks, avoid excessive arrows, avoid overdecorated quirkiness, avoid scene-like explanatory layout, and avoid making the thumbnail look like a generic ad."""
     return prompt, refs
@@ -586,6 +587,38 @@ def composite_scene16_book_cover(background_bytes: bytes, cover_path: Path) -> b
     """Composite the real Scene 16 book cover subtly, smaller than Scene 03."""
     return composite_scene03_book_cover(background_bytes, cover_path, cover_width_ratio=0.20, x_ratio=0.68)
 
+
+def apply_bookbase_logo(
+    image_bytes: bytes,
+    *,
+    logo_path: Path | str = BOOK_BASE_LOGO_PATH,
+    logo_width: int = BOOK_BASE_LOGO_WIDTH,
+    left_margin: int = BOOK_BASE_LOGO_LEFT_MARGIN,
+    bottom_margin: int = BOOK_BASE_LOGO_BOTTOM_MARGIN,
+) -> bytes:
+    """Composite the fixed Book Base logo onto the lower-left of a generated image."""
+    from PIL import Image
+
+    logo_file = Path(logo_path)
+    if not logo_file.is_absolute():
+        logo_file = Path.cwd() / logo_file
+    if not logo_file.exists():
+        raise FileNotFoundError(f"Book Baseロゴ固定アセットが見つかりません: {logo_file}")
+
+    base = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
+    logo = Image.open(logo_file).convert("RGBA")
+    logo_height = int(logo_width * logo.height / logo.width)
+    logo = logo.resize((logo_width, logo_height), Image.Resampling.LANCZOS)
+
+    x = left_margin
+    y = base.height - logo_height - bottom_margin
+    base.alpha_composite(logo, (x, y))
+
+    output = io.BytesIO()
+    base.convert("RGB").save(output, format="PNG")
+    return output.getvalue()
+
+
 def validate_png_16_9(path: Path) -> tuple[bool, tuple[int, int] | None, bool, str]:
     if not path.exists():
         return False, None, False, "画像ファイルが存在しません。"
@@ -637,6 +670,7 @@ def generate_images(targets: list[ImageTarget], *, model: str = "gpt-image-2", s
                 image_bytes = composite_scene03_book_cover(image_bytes, cover_path)
             if target.scene == 16 and target.references:
                 image_bytes = composite_scene16_book_cover(image_bytes, target.references[0])
+            image_bytes = apply_bookbase_logo(image_bytes)
             tmp_path = output_path.with_name(output_path.name + ".tmp")
             tmp_path.write_bytes(image_bytes)
             exists_ok, image_size, ratio_ok, validation_error = validate_png_16_9(tmp_path)

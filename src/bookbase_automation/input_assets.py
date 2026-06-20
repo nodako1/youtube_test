@@ -11,6 +11,7 @@ from .fs_utils import slugify
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 RTFD_ZIP_SUFFIX = ".rtfd.zip"
 TOKYO_TIMEZONE = ZoneInfo("Asia/Tokyo")
+BOOK_BASE_LOGO_FILENAME = "book_base_logo.png"
 
 
 @dataclass(frozen=True)
@@ -74,6 +75,10 @@ def _is_author(path: Path) -> bool:
     return path.suffix.lower() in IMAGE_EXTENSIONS and "_author" in path.stem.lower()
 
 
+def is_book_base_logo_asset(path: Path) -> bool:
+    return path.name.lower() == BOOK_BASE_LOGO_FILENAME
+
+
 def today_in_tokyo() -> date:
     return datetime.now(TOKYO_TIMEZONE).date()
 
@@ -81,7 +86,7 @@ def today_in_tokyo() -> date:
 def select_flat_inputs(input_dir: Path, *, run_date: date | None = None) -> FlatInputSelection:
     run_date = run_date or today_in_tokyo()
     date_key = run_date.strftime("%Y%m%d")
-    files = [path for path in input_dir.iterdir() if path.is_file()]
+    files = [path for path in input_dir.iterdir() if path.is_file() and not is_book_base_logo_asset(path)]
     current_sources: list[Path] = []
     current_book_covers: list[Path] = []
     current_authors: list[Path] = []
@@ -167,7 +172,7 @@ def format_rtfd_zip_search_error(selection: FlatInputSelection, found_files: lis
 
 
 def find_rtfd_zip_files(input_dir: Path) -> list[Path]:
-    return sorted(path for path in input_dir.iterdir() if path.is_file() and _is_rtfd_zip(path))
+    return sorted(path for path in input_dir.iterdir() if path.is_file() and not is_book_base_logo_asset(path) and _is_rtfd_zip(path))
 
 
 def build_flat_input_report(selection: FlatInputSelection) -> str:

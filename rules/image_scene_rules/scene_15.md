@@ -79,7 +79,7 @@ scene_15用に以下を毎回作成する。
 ## 推奨プロンプトテンプレート
 
 ```text
-Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 15. Its fixed role is to reinforce Key Point 3 with a quotation, short excerpt, notable line, or distilled idea. The quote or idea must be based on the current script and current research. Do not hard-code any quote from a previous book. If attribution is uncertain, do not show a named person or face. Use a quote card, still-life composition, or symbolic quote scene instead.
 
