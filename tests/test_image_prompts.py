@@ -115,8 +115,12 @@ def test_scene_04_prompt_uses_author_reference_only_when_available(tmp_path: Pat
     missing_assets = generate_fallback_assets("本のメモ", "否定しない言い換え事典")
     missing_scene_04 = json.loads(missing_assets.image_prompts)[3]
     assert missing_scene_04["scene"] == 4
-    assert missing_scene_04["exact_text_elements"][:2] == ["著者紹介", "3つの重要ポイント"]
-    assert all(text[0] in "①②③" for text in missing_scene_04["exact_text_elements"][2:])
+    assert missing_scene_04["exact_text_elements"][0].startswith("著者 ")
+    assert missing_scene_04["exact_text_elements"][1] != "3つの重要ポイント"
+    assert "著者紹介" not in missing_scene_04["exact_text_elements"]
+    assert "3つの重要ポイント" not in missing_scene_04["exact_text_elements"]
+    assert all(text[0] in "①②③" for text in missing_scene_04["exact_text_elements"][2:5])
+    assert missing_scene_04["exact_text_elements"][5] in {"理解から実践へ", "順番に学ぶ3ステップ"}
     assert "No author reference is available" in missing_scene_04["final_prompt"]
     assert "do not imagine a face" in missing_scene_04["final_prompt"]
     assert "silhouette" in missing_scene_04["final_prompt"]
