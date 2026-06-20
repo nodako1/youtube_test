@@ -20,7 +20,7 @@ class AIResponseValidationError(ValueError):
     """Raised when the OpenAI response JSON has an unexpected shape."""
 
 
-_COMMON_STYLE_FOR_SCHEMA = "16:9 landscape, watercolor illustration, premium calm atmosphere, Japanese business book YouTube channel, cream white, beige, teal, subtle gold palette, clean composition, enough whitespace, small natural Book Base logo, minimal concise Japanese text only, one clear message, do not place long script text, vary composition from adjacent scenes"
+_COMMON_STYLE_FOR_SCHEMA = "16:9 landscape, watercolor illustration, premium calm atmosphere, Japanese business book YouTube channel, cream white, beige, teal, subtle gold palette, clean composition, enough whitespace, fixed Book Base logo will be composited in post-processing, minimal concise Japanese text only, one clear message, do not place long script text, vary composition from adjacent scenes"
 
 TEXT_LOCK_INSTRUCTION = "Use only the following Japanese text elements exactly as written. Do not add any other Japanese or English text."
 
@@ -193,7 +193,7 @@ def _scene_06_structured_prompt(context: dict[str, object]) -> dict[str, object]
     visual_metaphor = "current-script-derived mechanism diagram: layered cards, subtle connecting lines, and a visual metaphor matching Key Point 1 without using any previous-book topic words"
     composition = _scene_06_composition(visual_structure)
     motifs = ["理由カード", "仕組みカード", "結果カード", "細い接続線", "半透明レイヤー"]
-    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 06. Its fixed role is to explain the reason, background, or mechanism behind Key Point 1. The image should visually clarify why the first key point matters, based on the current script. Do not create a generic business person image. Do not hard-code any topic from a previous book. Build the visual message from the current script only.
 
@@ -298,7 +298,7 @@ def _scene_07_structured_prompt(context: dict[str, object]) -> dict[str, object]
     elements = [evidence_label[:15], point_1_label[:15], key_finding_label[:15]]
     visual_structure = _scene_07_visual_structure(evidence_type)
     composition = _scene_07_composition(visual_structure)
-    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 07. Its fixed role is to reinforce Key Point 1 with evidence, such as research, survey results, public data, reports, experiments, or documented examples. The evidence type must be based on the current script and current research data. Do not hard-code psychology research or any topic from a previous book. Do not invent specific numbers, sources, or study names.
 
@@ -345,7 +345,7 @@ def _scene_08_structured_prompt(context: dict[str, object]) -> dict[str, object]
         "長文CTAを入れない",
         "scene_07の資料・グラフ構図と被らせない",
     ]
-    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 08. Its fixed role is a subscription CTA for the Book Base channel. The image should invite viewers to subscribe in an elegant, non-pushy way. It should feel like a calm invitation to keep learning from business books, not a loud advertisement. Book Base delivers popular books from the perspective of applying book insights to work and income growth. Do not include any current book title, author name, Key Point 1 content, Scene 07 evidence data, or book-specific keywords.
 
@@ -419,7 +419,7 @@ def _scene_09_structured_prompt(context: dict[str, object]) -> dict[str, object]
     visual_metaphor = "current-script-derived metaphor for Key Point 2, such as a second step, next card, roadmap turn, method notebook, framework board, habit calendar, or contrast panels selected to match point_2_type"
     composition = _scene_09_composition(point_2_type)
     visual_motifs = ["第2ポイントカード", "次のステップ", "細い矢印", "現在内容に合う象徴モチーフ", "余白"]
-    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 09. Its fixed role is to introduce Key Point 2. The image should make viewers understand that the video is moving into the second important point. Do not create a generic business conversation image. Do not hard-code any topic from a previous book. Build the visual message from the current script only.
 
@@ -490,7 +490,7 @@ def _scene_10_structured_prompt(context: dict[str, object]) -> dict[str, object]
     elements = [example_label[:15], application_label[:15], result_label[:15]]
     composition = _scene_10_composition(visual_structure)
     visual_motifs = ["原稿由来の具体例", "実践カード", "短いキーワード", "Scene 09と異なる構図", "余白"]
-    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 10. Its fixed role is to make Key Point 2 concrete through an example, comparison, practical step, or application image. The image should help viewers understand how Key Point 2 works in practice. Do not create a generic cause-and-effect flowchart unless the current script actually requires it. Do not hard-code any topic from a previous book. Build the visual message from the current script only.
 
@@ -575,7 +575,7 @@ def _scene_11_structured_prompt(context: dict[str, object]) -> dict[str, object]
     elements = ["実話エピソード", text2[:15], lesson_label[:15]]
     composition = _scene_11_composition(visual_mode)
     visual_motifs = ["実話エピソードカード", "資料", "行動シーン", "短い教訓ラベル", "Scene 10と異なる構図"]
-    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 11. Its fixed role is to reinforce Key Point 2 with a real-life episode. The episode must be based on current script research. Do not hard-code any person, company, or historical figure from a previous book. Do not invent a real-life episode. If verification is weak, use a silhouette or symbolic action scene instead of a named person.
 
@@ -646,7 +646,7 @@ def _scene_13_structured_prompt(context: dict[str, object]) -> dict[str, object]
     visual_metaphor = "current-script-derived metaphor for Key Point 3, such as the third card, final door, last step, light path, bridge to practice, framework board, habit path, or decision compass selected to match point_3_type"
     scene_13_composition = _scene_13_composition(point_3_type)
     visual_motifs = ["第3ポイントカード", "最後の扉", "光の道", "現在内容に合う象徴モチーフ", "余白"]
-    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 13. Its fixed role is to introduce Key Point 3. The image should make viewers understand that the video is moving into the third and final major point. Do not create a generic checklist or planner image unless the current script actually requires it. Do not hard-code any topic from a previous book. Build the visual message from the current script only.
 
@@ -718,7 +718,7 @@ def _scene_14_structured_prompt(context: dict[str, object]) -> dict[str, object]
     visual_metaphor = "current-script-derived metaphor for concretizing Key Point 3, such as a single use-case card, step path, before-after bridge, tool-in-hand, scenario vignette, or framework being applied"
     composition = _scene_14_composition(visual_structure)
     visual_motifs = ["原稿由来の具体場面", "3つ以内の短い日本語ラベル", "小さな実践モチーフ", "scene_13とは違う構図", "scene_18とは違う一例への絞り込み"]
-    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 14. Its fixed role is to make Key Point 3 concrete through a practical example, usage scene, step, or application image. The image should help viewers understand how Key Point 3 works in practice. Do not create a generic meeting scene unless the current script actually requires it. Do not hard-code any topic from a previous book. Build the visual message from the current script only.
 
@@ -809,7 +809,7 @@ def _scene_15_structured_prompt(context: dict[str, object]) -> dict[str, object]
         elements = ["印象的な一節", quote_excerpt_label[:18], lesson_label[:15]]
     composition = _scene_15_composition(visual_mode)
     visual_motifs = ["短い引用カード", "本とノート", "余白", "控えめな光", "Scene 14と異なる構図"]
-    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 15. Its fixed role is to reinforce Key Point 3 with a quotation, short excerpt, notable line, or distilled idea. The quote or idea must be based on the current script and current research. Do not hard-code any quote from a previous book. If attribution is uncertain, do not show a named person or face. Use a quote card, still-life composition, or symbolic quote scene instead.
 
@@ -916,7 +916,7 @@ def _scene_12_structured_prompt(context: dict[str, object]) -> dict[str, object]
     visual_structure = _scene_12_visual_structure(" ".join([scene12_body, scene11_body, scene10_body, scene9_body]))
     composition = _scene_12_composition(visual_structure)
     elements = [learning_label, "要点整理", cta_label]
-    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 12. Its fixed role is a comment CTA, but the CTA must not be the main subject. Make the book's learning, key idea, diagram, and conceptual summary from Scenes 09-11 the visual focus. Add the comment prompt only as one small supporting Japanese text element in a lower-corner speech bubble or small auxiliary area. Do not hard-code any topic from a previous book. Build all labels from the current script only.
 
@@ -1332,7 +1332,7 @@ def _build_thumbnail_ideas(book_name: str, cover_check: AssetCheck | None = None
     needs_review = bool(cover_check and cover_check.status == "MISSING")
     shared = (
         "16:9 watercolor premium Japanese business book YouTube thumbnail, "
-        "large short original Japanese comment, visible book cover, small natural Book Base logo, "
+        "large short original Japanese comment, visible book cover, fixed Book Base logo will be composited in post-processing, "
         "cream white beige teal gold palette, intellectual calm atmosphere, smartphone-readable text"
     )
     patterns = [
@@ -1454,7 +1454,7 @@ def _scene_19_structured_prompt(context: dict[str, object]) -> dict[str, object]
     current_cover = context["assets"].get("book_cover") if isinstance(context.get("assets"), dict) else None
     related_cover = context["assets"].get("related_book_cover") if isinstance(context.get("assets"), dict) else None
     elements = [connection_message]
-    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant, sophisticated atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant, sophisticated atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 19. Its fixed role is to naturally connect the current book with a related book from a past video. The image should communicate continuity of learning, broader understanding, and a gentle path toward the next related learning. It must not look like a simple advertisement, a clickbait banner, or a product promotion. Do not make it a closing or thank-you scene like Scene 20.
 
@@ -1593,7 +1593,7 @@ def _scene_20_structured_prompt(context: dict[str, object]) -> dict[str, object]
     closing_text = _scene_20_closing_text(final_message_label, closing_type)
     elements = [closing_text]
     composition = _scene_20_composition(visual_structure)
-    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, warm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, warm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 20. Its fixed role is to close the video warmly and leave viewers with a calm aftertaste, appreciation, and a positive feeling. The image should feel like the quiet moment after finishing a meaningful book. It must not become a recap scene, a practical work scene, a related-video promotion, or a CTA banner.
 
@@ -1849,7 +1849,7 @@ def _build_image_prompt_item(scene: int, context: dict[str, object] | None = Non
         recommended_composition = composition_by_point[point]
         prompt = (
             "16:9 watercolor illustration for a premium Japanese business book YouTube channel, "
-            "soft cream white beige teal and gold palette, small natural Book Base logo in the upper-right or lower-right, "
+            "soft cream white beige teal and gold palette, no AI-rendered Book Base logo, reserve logo space for post-processing, "
             f"scene {scene}, {meta['所属ブロック']}, {meta['ブロック内での役割']}, "
             f"{recommended_composition}, no long text, one clear message, avoid repeating adjacent composition"
         )
@@ -1988,7 +1988,7 @@ def _scene_18_structured_prompt(context: dict[str, object]) -> dict[str, object]
     composition = _scene_18_composition(visual_structure)
     practice_text = viewer_takeaway_label if 4 <= len(viewer_takeaway_label) <= 15 else "今日から実践"
     elements = [practice_text]
-    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 18. Its fixed role is to show how the learning from the book can be applied in work or daily life. The image should help viewers imagine putting the ideas into action. It must not become a generic office scene or a simple desk-working image.
 
@@ -2079,7 +2079,7 @@ def _scene_17_structured_prompt(context: dict[str, object]) -> dict[str, object]
     overall_takeaway_label = _short_label(scene17_body or str(context.get("current_theme", "")), "学びを整理する", 14)
     summary_heading = "今回のまとめ"
     elements = [summary_heading, f"① {labels[0]}", f"② {labels[1]}", f"③ {labels[2]}"]
-    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 17. Its fixed role is to recap the three key points and summarize the core learning of the book. The image should help viewers quickly reorganize what they have learned so far. Do not create a generic three-card image without meaning. Do not hard-code any topic from a previous book. Build the labels from the current script only.
 
@@ -2145,7 +2145,7 @@ def _scene_16_structured_prompt(context: dict[str, object]) -> dict[str, object]
         mode_rule = "The actual book cover will be composited later from the current input book_cover image. Do not draw or recreate the book cover. Leave a clean space for the real cover. The real cover should be smaller and more subtle than in Scene 03."
     elif visual_mode == "generic_book":
         mode_rule = "Use a generic book without a readable title. Do not invent a book cover. Do not write the current book title on the cover."
-    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+    final_prompt = f"""Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 16. Its fixed role is to guide viewers to the remaining value of the book and gently invite them to read it. The image should feel like a calm reading invitation, not a sales advertisement. Do not include purchase links, store names, price, or aggressive buying language. Do not hard-code any book title from a previous video.
 

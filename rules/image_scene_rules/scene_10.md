@@ -66,7 +66,7 @@ scene_10用に毎回以下を作成する。
 ## 推奨プロンプトテンプレート
 
 ```text
-Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 10. Its fixed role is to make Key Point 2 concrete through an example, comparison, practical step, or application image. The image should help viewers understand how Key Point 2 works in practice. Do not create a generic cause-and-effect flowchart unless the current script actually requires it. Do not hard-code any topic from a previous book. Build the visual message from the current script only.
 

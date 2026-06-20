@@ -67,7 +67,7 @@ scene_09用に、現在の原稿から以下を作成する。
 ## 推奨プロンプトテンプレート
 
 ```text
-Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Include a small natural Book Base logo placed unobtrusively.
+Create a 16:9 landscape video-insert image for Book Base, a Japanese business book YouTube channel. Use a refined watercolor illustration style with a premium, calm, elegant atmosphere. Use a soft cream-white and beige background with teal and subtle gold accents. Leave the lower-left corner clean because the fixed Book Base logo will be composited after generation.
 
 This is Scene 09. Its fixed role is to introduce Key Point 2. The image should make viewers understand that the video is moving into the second important point. Do not create a generic business conversation image. Do not hard-code any topic from a previous book. Build the visual message from the current script only.
 

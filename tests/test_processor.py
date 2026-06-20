@@ -105,6 +105,7 @@ def test_run_processes_flat_rtfd_inputs_and_writes_scene03_prompt(tmp_path: Path
     (config.input_dir / f"{today}_book_cover.webp").write_bytes(b"fake cover")
     (config.input_dir / f"{today}_author.jpg").write_bytes(b"fake author")
     (config.input_dir / "20260616_book_cover.webp").write_bytes(b"fake related cover")
+    (config.input_dir / "book_base_logo.png").write_bytes(b"fixed logo")
 
     outputs = run(config)
 
@@ -119,7 +120,7 @@ def test_run_processes_flat_rtfd_inputs_and_writes_scene03_prompt(tmp_path: Path
     assert "scene_03：NEEDS_REVIEW" in report
     assert "scene_03.png" in prompts
     assert "book_cover" in prompts
-    assert not list(config.input_dir.iterdir())
+    assert sorted(path.name for path in config.input_dir.iterdir()) == ["book_base_logo.png"]
     assert list(config.archive_dir.iterdir())
 
 

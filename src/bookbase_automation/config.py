@@ -5,6 +5,12 @@ from datetime import date
 from pathlib import Path
 
 
+BOOK_BASE_LOGO_PATH = "input/book_base_logo.png"
+BOOK_BASE_LOGO_WIDTH = 180
+BOOK_BASE_LOGO_LEFT_MARGIN = 28
+BOOK_BASE_LOGO_BOTTOM_MARGIN = 24
+
+
 @dataclass(frozen=True)
 class AppConfig:
     root: Path

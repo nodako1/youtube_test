@@ -9,6 +9,7 @@ from PIL import Image
 
 from bookbase_automation.image_generation import (
     ImageTarget,
+    apply_bookbase_logo,
     build_image_targets,
     generate_images,
     parse_image_scenes,
@@ -16,6 +17,14 @@ from bookbase_automation.image_generation import (
 )
 from bookbase_automation.input_assets import FlatInputSelection
 from datetime import date
+
+
+@pytest.fixture(autouse=True)
+def fixed_logo_asset(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    logo_dir = tmp_path / "input"
+    logo_dir.mkdir()
+    Image.new("RGBA", (360, 120), (10, 120, 130, 255)).save(logo_dir / "book_base_logo.png")
 
 
 def _png_b64(size=(1536, 864)):
@@ -80,6 +89,22 @@ def install_mock_openai(monkeypatch):
 
 def target(tmp_path, scene=1):
     return ImageTarget(f"scene_{scene:02d}", f"scene_{scene:02d}.png", tmp_path, "minimal concise Japanese text only", (), scene)
+
+
+def test_apply_bookbase_logo_uses_fixed_lower_left_position(tmp_path):
+    base = tmp_path / "base.png"
+    logo = tmp_path / "book_base_logo.png"
+    Image.new("RGB", (1536, 864), (240, 235, 225)).save(base)
+    Image.new("RGBA", (360, 120), (10, 120, 130, 255)).save(logo)
+
+    image_bytes = apply_bookbase_logo(base.read_bytes(), logo_path=logo)
+    output = tmp_path / "output.png"
+    output.write_bytes(image_bytes)
+    rendered = Image.open(output).convert("RGBA")
+
+    assert rendered.size == (1536, 864)
+    assert rendered.getpixel((28, 864 - 60 - 24))[:3] == (10, 120, 130)
+    assert rendered.getpixel((27, 864 - 60 - 24))[:3] == (240, 235, 225)
 
 
 def test_parse_image_scenes_selects_only_requested_scenes():
