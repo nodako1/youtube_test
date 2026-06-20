@@ -17,7 +17,33 @@ SCENE_17_PREFIX = "今回の内容をおさらいすると"
 SCENE_8_CTA = "このチャンネルでは、話題の本を、日々の仕事や年収アップにどう活かせるかという視点でお届けしています。興味のある方は、ぜひチャンネル登録お願いします。"
 SCENE_16_BOOK_GUIDE = "もし気になった方は、ぜひ本書を手に取ってみてください。"
 SCENE_20_CLOSING = "参考になった方は、高評価やハイプで応援していただけると嬉しいです。それでは、また次回の動画でお会いしましょう。最後までご視聴ありがとうございました。"
-FORBIDDEN_SCENE_1_PHRASES = ["選択肢は、", "1つ目", "2つ目", "3つ目", "少し考えてみてください。"]
+SCENE_1_PREFIX = "こんにちは！人生の土台作りをサポートするブックベースです！いきなりですが、"
+SCENE_1_CLOSING = "それでは正解を発表します。"
+FORBIDDEN_SCENE_1_PHRASES = ["選択肢は、", "1つ目", "2つ目", "3つ目", "少し考えてみてください。", "ある調査によると"]
+
+
+def _scene_1_quiz_errors(scene_1: str) -> list[str]:
+    errors: list[str] = []
+    if not scene_1.startswith(SCENE_1_PREFIX):
+        errors.append("固定開始文なし")
+    if not scene_1.endswith(SCENE_1_CLOSING):
+        errors.append("固定締め文なし")
+    if "正解は" in scene_1 or re.search(r"正解[：:、は]*[ABCＡＢＣ]", scene_1):
+        errors.append("シーン1で正解を明かしています")
+    if "調査" not in scene_1:
+        errors.append("調査出典なし")
+    if not re.search(r"(会社|団体|法人|省|庁|機構|協会|研究所|サービス|メディア|大学|機関).{0,30}調査", scene_1):
+        errors.append("会社・団体の説明不足")
+    if not re.search(r"だったと思いますか。", scene_1):
+        errors.append("クイズ文末が指定形式ではありません")
+    for letter in "ABC":
+        option = re.search(rf"{letter}[、.．]\s*([^ABCＡＢＣ。]+)", scene_1)
+        if not option:
+            errors.append(f"選択肢{letter}なし")
+            continue
+        if not re.search(r"\d", option.group(1)) or not re.search(r"％|%|人|社|件|割|円|時間|分|点", option.group(1)):
+            errors.append(f"選択肢{letter}に具体的数値・単位なし")
+    return errors
 
 STYLE_CHECK_ITEMS = [
     "読みたくなる言い回し",
@@ -387,7 +413,7 @@ def build_quality_report(script: str, titles: str, image_prompts: str, descripti
         ),
         CheckResult("全体3600〜4400字", "OK" if TOTAL_MIN_CHARS <= total_chars <= TOTAL_MAX_CHARS else "NG", f"現在の文字数目安: {total_chars}"),
         CheckResult("50〜60文字説明", "OK" if DESCRIPTION_MIN_CHARS <= description_length <= DESCRIPTION_MAX_CHARS else "NG", f"現在の説明文字数: {description_length}"),
-        CheckResult("シーン1統計クイズ", "OK" if all(token in scene_1 for token in ["A.", "B.", "C.", "調査", "それでは正解を発表します。"]) else "NG", "ABC選択肢、調査、締め文を確認してください"),
+        CheckResult("シーン1統計クイズ", "OK" if not _scene_1_quiz_errors(scene_1) else "NG", " / ".join(_scene_1_quiz_errors(scene_1)) or "固定開始文、出典説明、数値選択肢、締め文を確認済み"),
         CheckResult("シーン1禁止表現なし", "OK" if not any(phrase in scene_1 for phrase in FORBIDDEN_SCENE_1_PHRASES) else "NG", "禁止表現を確認してください"),
         CheckResult("シーン2正解発表とテーマ接続", "OK" if "正解" in scene_2 and any(token in scene_2 for token in ["テーマ", "本", "会社員"]) else "NG", "正解発表からテーマへ接続してください"),
         CheckResult("シーン3本紹介固定文", "OK" if "今回紹介するのは、" in scene_3 and "こちらの本になります。" in scene_3 else "NG", "固定文を確認してください"),

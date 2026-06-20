@@ -130,7 +130,8 @@ def test_structured_optional_markdown_fields_are_rendered():
 def test_render_script_from_scenes_enforces_bookbase_format():
     from bookbase_automation.generator import render_script_from_scenes, validate_bookbase_script
 
-    scenes = [{"scene_number": index, "body": "あ" * 180} for index in range(1, 21)]
+    scene_1 = "こんにちは！人生の土台作りをサポートするブックベースです！いきなりですが、人材関連サービスを提供する株式会社R＆Gの2026年の調査で、能力開発や人材育成に問題があると答えた事業所は何％だったと思いますか。A、39.9％。B、59.9％。C、79.9％。管理職だけでなく、後輩指導やチーム作業にも直結する数字です。自分の仕事の土台にも関わります。それでは正解を発表します。"
+    scenes = [{"scene_number": 1, "body": scene_1}] + [{"scene_number": index, "body": "あ" * 180} for index in range(2, 21)]
     rendered = render_script_from_scenes(scenes)
 
     assert rendered.startswith("【シーン1】\n")
