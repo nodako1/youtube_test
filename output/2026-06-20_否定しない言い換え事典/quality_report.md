@@ -85101,3 +85101,340 @@ scene_04_visual：silhouette_or_symbolic
 水彩画風の高級感：OK
 scene_03と構図が違う：OK
 硬いフローチャートになっていない：OK
+
+## 【画像生成チェック】
+
+## 【実行完了状況】
+
+原稿生成：OK
+画像プロンプト生成：OK
+画像生成対象：scene_12〜scene_12
+生成完了：なし
+失敗：なし
+スキップ：scene_12
+次回再開推奨：なし
+retry回数：0
+最終ステータス：COMPLETED
+
+- scene_12：SKIPPED
+
+scene番号：scene_12
+API生成：OK
+出力パス：/home/runner/work/bookbase-automation/bookbase-automation/output/2026-06-20_否定しない言い換え事典/images/scene_12.png
+画像存在確認：OK
+画像サイズ：1536 x 864
+16:9確認：OK
+使用モデル：gpt-image-2
+使用サイズ：1536x864
+使用品質：high
+Book Base共通ルール適用：OK
+scene専用ルール適用：OK
+画像内テキスト制約：OK
+エラー内容：なし
+- thumbnail_A_loss_aversion：NEEDS_REVIEW
+- thumbnail_B_benefit：NEEDS_REVIEW
+- thumbnail_C_curiosity：NEEDS_REVIEW
+
+## 【thumbnail_A_loss_aversion 画像品質チェック】
+
+thumbnail_A_loss_aversion固定役割に合っている：OK
+損失回避型サムネになっている：OK
+安っぽい煽りサムネになっていない：OK
+参照画像が現在の本の表紙として主役化されている：OK
+コメント「その努力、遠回りです」が主役として大きく見える：OK
+comment_text が1要素のみ：OK
+loss_trigger_label が定義されている：OK
+tension_style が設定されている：OK
+visual_structure が設定されている：OK
+英語テキストなし：OK
+指定外テキストなし：OK
+文字量が多すぎない：OK
+Book Baseロゴが小さく自然：OK
+クリック性と上品さが両立している：OK
+
+## 【thumbnail_B_benefit 画像品質チェック】
+
+thumbnail_B_benefit固定役割に合っている：OK
+ベネフィット訴求型サムネになっている：OK
+安っぽい自己啓発サムネになっていない：OK
+参照画像が現在の本の表紙として主役化されている：OK
+コメント「仕事が軽くなる思考法」が主役として大きく見える：OK
+comment_text が1要素のみ：OK
+benefit_trigger_label が定義されている：OK
+benefit_style が設定されている：OK
+visual_structure が設定されている：OK
+英語テキストなし：OK
+指定外テキストなし：OK
+文字量が多すぎない：OK
+Book Baseロゴが小さく自然：OK
+クリック性と上品さが両立している：OK
+thumbnail_Aと役割が混ざっていない：OK
+
+## 【thumbnail_C_curiosity 画像品質チェック】
+
+thumbnail_C_curiosity固定役割に合っている：OK
+逆張り・好奇心訴求型サムネになっている：OK
+意味のない奇抜サムネになっていない：OK
+参照画像が現在の本の表紙として主役化されている：OK
+コメント「考える前に整える」が主役として大きく見える：OK
+comment_text が1要素のみ：OK
+curiosity_trigger_label が定義されている：OK
+contrarian_angle_label が定義されている：OK
+curiosity_style が設定されている：OK
+visual_structure が設定されている：OK
+英語テキストなし：OK
+指定外テキストなし：OK
+文字量が多すぎない：OK
+Book Baseロゴが小さく自然：OK
+クリック性と上品さが両立している：OK
+thumbnail_Aと役割が混ざっていない：OK
+thumbnail_Bと役割が混ざっていない：OK
+
+## 【scene_02 画像品質チェック】
+
+scene_role反映：OK
+正解Bが一目で分かる：OK
+テーマへの橋渡しがある：OK
+指定外テキストなし：OK
+文字量が少ない：OK
+Book Baseらしい高級感：OK
+scene_01と構図が違う：OK
+サムネイルっぽくなりすぎていない：OK
+
+## 【scene_05 画像品質チェック】
+
+重要ポイント①だと分かる：OK
+否定を避ける心理効果が伝わる：OK
+一目でメッセージが分かる：OK
+文字量が少ない：OK
+指定外テキストなし：OK
+Book Baseらしい高級感：OK
+scene_04と構図が違う：OK
+ただの雰囲気画像になっていない：OK
+
+## 【scene_06 画像品質チェック】
+
+深掘りシーンの固定役割に合っている：OK
+現在の原稿内容に沿っている：OK
+直前の重要ポイントを深掘りしている：OK
+原稿内容を図解・人物・短文に変換している：OK
+過去テーマのハードコードなし：OK
+指定外テキストなし：OK
+文字量が少ない：OK
+Before/After・フロー・対比・分解図・メタファーのいずれかがある：OK
+scene_05と構図が違う：OK
+見出しだけで終わっていない：OK
+
+## 【scene_07 画像品質チェック】
+
+scene_07固定役割に合っている：OK
+重要ポイント①の根拠補強になっている：OK
+evidence_type が現在の原稿に基づいている：OK
+source_confidence を記録している：OK
+過去テーマのハードコードなし：OK
+架空の数字・出典なし：OK
+指定外テキストなし：OK
+文字量が少ない：OK
+scene_06と構図が違う：OK
+generic report image になっていない：OK
+
+## 【scene_08 画像品質チェック】
+
+チャンネル登録CTAだと分かる：OK
+押し売り感がない：OK
+Book Baseらしい学びの雰囲気がある：OK
+英語テキストなし：OK
+指定外テキストなし：OK
+文字量が少ない：OK
+赤い派手な登録ボタンになっていない：OK
+scene_07と構図が違う：OK
+Book Baseロゴが自然に入っている：OK
+
+## 【scene_16 画像品質チェック】
+
+scene_16固定役割に合っている：OK
+本書の残りの価値案内になっている：OK
+自然な読書案内になっている：OK
+購入誘導が強すぎない：OK
+概要欄リンク誘導なし：OK
+販売サイト名なし：OK
+架空のブックカバーなし：OK
+実カバー使用時はAI再生成なし：OK
+指定外テキストなし：OK
+文字量が少ない：OK
+scene_03と構図が違う：OK
+
+## 【scene_17 画像品質チェック】
+
+scene_17固定役割に合っている：OK
+3つの重要ポイントの振り返りになっている：OK
+3ポイントが順番のある流れとして見える：OK
+point_1_label / point_2_label / point_3_label が原稿から生成されている：OK
+summary_heading が適切：OK
+英語テキストなし：OK
+指定外テキストなし：OK
+文字量が多すぎない：OK
+scene_04と構図が違う：OK
+scene_20の締め画像と役割が混ざっていない：OK
+generic three-card image になっていない：OK
+
+## 【scene_09 画像品質チェック】
+
+scene_09固定役割に合っている：OK
+重要ポイント②の導入だと分かる：OK
+現在の原稿内容に沿っている：OK
+point_2_label が原稿から生成されている：OK
+point_2_type が適切：OK
+過去テーマのハードコードなし：OK
+指定外テキストなし：OK
+文字量が少ない：OK
+scene_08と構図が違う：OK
+scene_05と構図が違う：OK
+generic business image になっていない：OK
+
+## 【scene_10 画像品質チェック】
+
+深掘りシーンの固定役割に合っている：OK
+直前の重要ポイントを深掘りしている：OK
+現在の原稿内容に沿っている：OK
+Before/After・フロー・対比・分解図・メタファーのいずれかがある：OK
+原稿内容を図解・人物・短文に変換している：OK
+過去テーマのハードコードなし：OK
+指定外テキストなし：OK
+文字量が少ない：OK
+scene_09と構図が違う：OK
+下部にまとめ帯がある：OK
+
+## 【scene_11 画像品質チェック】
+
+scene_11固定役割に合っている：OK
+重要ポイント②の実話補強になっている：OK
+エピソードが現在の原稿に基づいている：OK
+verification_status を記録している：OK
+検証が弱い場合に人物名を出していない：OK
+検証が弱い場合に顔を描いていない：OK
+過去テーマのハードコードなし：OK
+Toyota等の固定企業名なし：OK
+指定外テキストなし：OK
+文字量が少ない：OK
+scene_10と構図が違う：OK
+
+## 【scene_12 画像品質チェック】
+
+scene_12固定役割に合っている：NG
+本の学び・要点整理が主役：NG
+コメントCTAが補助的に小さい：NG
+コメントCTAが短い1要素まで：OK
+現在のテーマに合う経験質問になっている：NG
+キーワード型コメント促しになっていない：OK
+英語テキストなし：OK
+指定外テキストなし：OK
+文字量が少ない：OK
+scene_08と構図が違う：OK
+押しつけがましくない：OK
+
+## 【scene_13 画像品質チェック】
+
+scene_13固定役割に合っている：OK
+重要ポイント③の導入だと分かる：OK
+現在の原稿内容に沿っている：OK
+point_3_label が原稿から生成されている：OK
+point_3_type が適切：OK
+過去テーマのハードコードなし：OK
+指定外テキストなし：OK
+文字量が少ない：OK
+scene_09と構図が違う：OK
+scene_12と構図が違う：OK
+scene_18の実践画像と役割が混ざっていない：OK
+
+## 【scene_14 画像品質チェック】
+
+深掘りシーンの固定役割に合っている：OK
+直前の重要ポイントを深掘りしている：OK
+現在の原稿内容に沿っている：OK
+Before/After・フロー・対比・分解図・メタファーのいずれかがある：OK
+原稿内容を図解・人物・短文に変換している：OK
+過去テーマのハードコードなし：OK
+指定外テキストなし：OK
+文字量が少ない：OK
+scene_13と構図が違う：OK
+scene_18と役割が混ざっていない：OK
+下部にまとめ帯がある：OK
+
+## 【scene_15 画像品質チェック】
+
+scene_15固定役割に合っている：OK
+重要ポイント③の引用・一節補強になっている：OK
+引用または要約が現在の原稿に基づいている：OK
+attribution_status を記録している：OK
+attribution が弱い場合に人物名を出していない：OK
+attribution が弱い場合に顔を描いていない：OK
+長い引用文を入れていない：OK
+過去テーマのハードコードなし：OK
+指定外テキストなし：OK
+文字量が少ない：OK
+scene_14と構図が違う：OK
+
+## 【scene_18 画像品質チェック】
+
+scene_18固定役割に合っている：OK
+本の学びを仕事や日常に落とし込む画像になっている：OK
+単なるデスクワーク画像になっていない：OK
+practice_theme_label が定義されている：OK
+practice_action_label が定義されている：OK
+practice_type が設定されている：OK
+visual_structure が設定されている：OK
+supporting_objects が適切：OK
+画像内テキストが1要素以内：OK
+英語テキストなし：OK
+指定外テキストなし：OK
+文字量が多すぎない：OK
+scene_17の総まとめ画像と役割が混ざっていない：OK
+scene_20の締め画像と役割が混ざっていない：OK
+generic office image になっていない：OK
+
+## 【scene_20 画像品質チェック】
+
+scene_20固定役割に合っている：OK
+動画全体を温かく締める画像になっている：OK
+読後感・余韻・感謝が伝わる：OK
+final_message_label が定義されている：OK
+closing_emotion が設定されている：OK
+closing_type が設定されている：OK
+visual_structure が設定されている：OK
+supporting_objects が適切：OK
+画像内テキストが1要素以内：OK
+英語テキストなし：OK
+指定外テキストなし：OK
+文字量が多すぎない：OK
+scene_18の実践画像と役割が混ざっていない：OK
+scene_19の関連動画接続画像と役割が混ざっていない：OK
+CTA・広告バナー風になっていない：OK
+
+## 【scene_03 画像品質チェック】
+
+ブックカバー参照画像あり：NG
+実ブックカバーを使用：NG
+AIが表紙を再生成していない：NG
+ブックカバーの文字が読める：NG
+ブックカバーが歪んでいない：NG
+表紙の上に文字を重ねていない：NG
+今回の本紹介として機能している：NG
+動画全体の結論が短く伝わる：NG
+文字量が少ない：NG
+Book Baseらしい高級感：NG
+scene_02と構図が違う：NG
+
+## 【scene_04 画像品質チェック】
+
+著者参考画像あり：OPTIONAL
+scene_04_author_reference：OPTIONAL
+scene_04_visual：silhouette_or_symbolic
+著者紹介として機能している：OK
+3つの重要ポイントが見える：OK
+文字量が少ない：OK
+指定外テキストなし：OK
+著者写真をそのまま貼っていない：OK
+水彩画風の高級感：OK
+scene_03と構図が違う：OK
+硬いフローチャートになっていない：OK
